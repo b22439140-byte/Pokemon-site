@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>TCG Hub — Jouw trading card webshop</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="style.css?v=2">
+</head>
+<body>
+
+    <div class="top-bar">
+        <div class="top-bar-left">
+            <span>3-5 dagen levertijd</span>
+            <span>Gratis verzending vanaf €100</span>
+            <span>Beoordeeld met 9,4/10 op Trustpilot</span>
+        </div>
+        <div class="top-bar-right">
+            <a href="contact.html">Klantenservice</a>
+            <a href="#">NL | EN</a>
+        </div>
+    </div>
+
+    <header class="main-header">
+        <div class="logo">
+            <a href="index.html">
+                <h1><span class="logo-mark" aria-hidden="true"></span>TCG<span>HUB</span></h1>
+            </a>
+        </div>
+
+        <form class="search-container" action="aanbod.html" role="search">
+            <input type="search" placeholder="Zoek kaarten, boxes, accessoires…">
+            <button type="submit">Zoeken</button>
+        </form>
+
+        <div class="user-actions">
+            <a href="#" class="action-link cart-link">
+                <span class="action-icon" aria-hidden="true">🛒</span>
+                <span id="cart-total">€0,00</span>
+                <span class="cart-count-badge" id="cart-count">0</span>
+            </a>
+        </div>
+    </header>
+
+    <nav class="category-nav" aria-label="Productcategorieën">
+        <ul>
+            <li><a href="aanbod.html">Pokémon</a></li>
+            <li><a href="aanbod.html">Yu-Gi-Oh!</a></li>
+            <li><a href="aanbod.html">Magic: The Gathering</a></li>
+            <li><a href="aanbod.html">Disney Lorcana</a></li>
+            <li><a href="aanbod.html">One Piece TCG</a></li>
+            <li><a href="aanbod.html">Accessoires</a></li>
+            <li><a href="aanbod.html" class="nav-sale">Sale</a></li>
+        </ul>
+    </nav>
+
+    <section class="hero">
+        <div class="hero-copy">
+            <p class="hero-kicker">Nieuw binnen deze week</p>
+            <h2>Sealed product en singles, klaar om te verzenden.</h2>
+            <p>Van Paldean Fates boxes tot illustration rares — vind de kaarten die je zoekt, zonder marketplace-gedoe.</p>
+            <div class="hero-actions">
+                <a class="btn-hero" href="aanbod.html">Bekijk nieuw binnen</a>
+                <a class="btn-hero-ghost" href="aanbod.html">Bekijk pre-orders</a>
+            </div>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+            <div class="hero-card mid">
+                <img src="https://images.pokemontcg.io/sv4pt5/1_hires.png" alt="">
+            </div>
+            <div class="hero-card back">
+                <img src="https://images.pokemontcg.io/swsh12pt5/160_hires.png" alt="">
+            </div>
+            <div class="hero-card front">
+                <img src="https://images.pokemontcg.io/sv3/223_hires.png" alt="">
+            </div>
+        </div>
+    </section>
+
+    <section class="trust-bar" aria-label="Winkelvoordelen">
+        <div class="trust-item">
+            <div class="trust-icon">3-5</div>
+            <div>
+                <strong>3-5 dagen levertijd</strong>
+                <span>Traceerbare verzending</span>
+            </div>
+        </div>
+        <div class="trust-item">
+            <div class="trust-icon">€</div>
+            <div>
+                <strong>Gratis vanaf €100</strong>
+                <span>Traceerbare verzending</span>
+            </div>
+        </div>
+        <div class="trust-item">
+            <div class="trust-icon">NM</div>
+            <div>
+                <strong>Conditie gegarandeerd</strong>
+                <span>Eerlijke grading, foto’s op verzoek</span>
+            </div>
+        </div>
+        <div class="trust-item">
+            <div class="trust-icon">9,4</div>
+            <div>
+                <strong>Vertrouwd door collectors</strong>
+                <span>9,4 op Trustpilot</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="game-section">
+        <div class="section-header">
+            <h2>Shop per spel</h2>
+        </div>
+        <div class="game-grid">
+            <a class="game-card pokemon" href="aanbod.html">Pokémon<small>Sealed &amp; singles</small></a>
+            <a class="game-card yugioh" href="aanbod.html">Yu-Gi-Oh!<small>Core sets</small></a>
+            <a class="game-card mtg" href="aanbod.html">Magic<small>Commander &amp; drafts</small></a>
+            <a class="game-card lorcana" href="aanbod.html">Lorcana<small>Disney TCG</small></a>
+            <a class="game-card onepiece" href="aanbod.html">One Piece<small>OP-12 binnenkort</small></a>
+            <a class="game-card accessories" href="aanbod.html">Accessoires<small>Sleeves &amp; toploaders</small></a>
+        </div>
+    </section>
+
+    <main class="shop-section" id="shop">
+        <div class="section-header">
+            <h2>Nieuw binnen &amp; pre-orders</h2>
+            <a href="aanbod.html">Bekijk alle producten →</a>
+        </div>
+
+        <div class="product-grid">
+            <div class="product-card">
+                <span class="badge preorder">Pre-order</span>
+                <a href="product.html?id=paldean-fates-etb" class="card-image-link">
+                    <div class="card-image">
+                        <img src="https://images.pokemontcg.io/sv4pt5/1_hires.png" alt="Paldean Fates Elite Trainer Box">
+                    </div>
+                </a>
+                <div class="product-brand">Pokémon TCG</div>
+                <h3 class="product-title"><a href="product.html?id=paldean-fates-etb">Scarlet &amp; Violet: Paldean Fates — Elite Trainer Box</a></h3>
+                <div class="product-price-row">
+                    <span class="price-current">€54,95</span>
+                </div>
+                <div class="purchase-group"
+                     data-product-id="paldean-fates-etb"
+                     data-product-title="Scarlet & Violet: Paldean Fates — Elite Trainer Box"
+                     data-product-image="https://images.pokemontcg.io/sv4pt5/1_hires.png">
+                    <input type="number" class="qty-input" value="1" min="1" max="12" data-price="54.95" aria-label="Aantal">
+                    <button class="btn-add">Pre-order</button>
+                </div>
+            </div>
+
+            <div class="product-card">
+                <span class="badge sale">Sale −15%</span>
+                <a href="product.html?id=pikachu-crown-zenith" class="card-image-link">
+                    <div class="card-image">
+                        <img src="https://images.pokemontcg.io/swsh12pt5/160_hires.png" alt="Pikachu Crown Zenith">
+                    </div>
+                </a>
+                <div class="product-brand">Pokémon singles</div>
+                <h3 class="product-title"><a href="product.html?id=pikachu-crown-zenith">Pikachu — Crown Zenith (Secret Rare) — Near Mint</a></h3>
+                <div class="product-price-row">
+                    <span class="price-current">€21,50</span>
+                    <span class="price-old">€25,00</span>
+                </div>
+                <div class="purchase-group"
+                     data-product-id="pikachu-crown-zenith"
+                     data-product-title="Pikachu — Crown Zenith (Secret Rare) — Near Mint"
+                     data-product-image="https://images.pokemontcg.io/swsh12pt5/160_hires.png">
+                    <input type="number" class="qty-input" value="1" min="1" max="5" data-price="21.50" aria-label="Aantal">
+                    <button class="btn-add">In winkelwagen</button>
+                </div>
+            </div>
+
+            <div class="product-card">
+                <a href="product.html?id=charizard-ex-obsidian" class="card-image-link">
+                    <div class="card-image">
+                        <img src="https://images.pokemontcg.io/sv3/223_hires.png" alt="Charizard ex">
+                    </div>
+                </a>
+                <div class="product-brand">Pokémon singles</div>
+                <h3 class="product-title"><a href="product.html?id=charizard-ex-obsidian">Charizard ex — Obsidian Flames (Illustration Rare)</a></h3>
+                <div class="product-price-row">
+                    <span class="price-current">€89,95</span>
+                </div>
+                <div class="purchase-group"
+                     data-product-id="charizard-ex-obsidian"
+                     data-product-title="Charizard ex — Obsidian Flames (Illustration Rare)"
+                     data-product-image="https://images.pokemontcg.io/sv3/223_hires.png">
+                    <input type="number" class="qty-input" value="1" min="1" max="2" data-price="89.95" aria-label="Aantal">
+                    <button class="btn-add">In winkelwagen</button>
+                </div>
+            </div>
+
+            <div class="product-card">
+                <a href="product.html?id=dragon-shield-sleeves" class="card-image-link">
+                    <div class="card-image">
+                        <img src="https://images.pokemontcg.io/base1/2_hires.png" alt="Dragon Shield sleeves" style="opacity: 0.55;">
+                    </div>
+                </a>
+                <div class="product-brand">Dragon Shield</div>
+                <h3 class="product-title"><a href="product.html?id=dragon-shield-sleeves">Matte Black Standard Size Sleeves (100 stuks)</a></h3>
+                <div class="product-price-row">
+                    <span class="price-current">€10,95</span>
+                </div>
+                <div class="purchase-group"
+                     data-product-id="dragon-shield-sleeves"
+                     data-product-title="Matte Black Standard Size Sleeves (100 stuks)"
+                     data-product-image="https://images.pokemontcg.io/base1/2_hires.png">
+                    <input type="number" class="qty-input" value="1" min="1" max="20" data-price="10.95" aria-label="Aantal">
+                    <button class="btn-add">In winkelwagen</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="footer-grid">
+            <div class="footer-col">
+                <div class="footer-brand">TCG<span>HUB</span></div>
+                <p>Een webshop van collectors, voor collectors. Sealed Pokémon, singles en tafel-TCG’s — eerlijke conditie en snelle verzending vanuit Nederland.</p>
+            </div>
+            <div class="footer-col">
+                <h4>Klantenservice</h4>
+                <ul>
+                    <li><a href="contact.html">Contact</a></li>
+                    <li><a href="#">Verzending &amp; retourneren</a></li>
+                    <li><a href="veelgestelde-vragen.html">Veelgestelde vragen</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>Informatie</h4>
+                <ul>
+                    <li><a href="over.html">Over TCG Hub</a></li>
+                    <li><a href="voorwaarden-privacy.html">Algemene voorwaarden</a></li>
+                    <li><a href="voorwaarden-privacy.html#privacy">Privacybeleid</a></li>
+                    <li><a href="#">Gradingsschaal</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>Betaalmethoden</h4>
+                <p>iDEAL, PayPal, Bancontact, Visa, Mastercard, Apple Pay.</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 TCG Hub.</p>
+        </div>
+    </footer>
+
+    <script src="js/cart.js"></script>
+</body>
+</html>

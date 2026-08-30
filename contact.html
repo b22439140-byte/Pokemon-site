@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Contact — TCG Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="style.css?v=2">
+</head>
+<body>
+
+    <div class="top-bar">
+        <div class="top-bar-left">
+            <span>3-5 dagen levertijd</span>
+            <span>Gratis verzending vanaf €100</span>
+            <span>Beoordeeld met 9,4/10 op Trustpilot</span>
+        </div>
+        <div class="top-bar-right">
+            <a href="contact.html">Klantenservice</a>
+            <a href="#">NL | EN</a>
+        </div>
+    </div>
+
+    <header class="main-header">
+        <div class="logo">
+            <a href="index.html">
+                <h1><span class="logo-mark" aria-hidden="true"></span>TCG<span>HUB</span></h1>
+            </a>
+        </div>
+
+        <form class="search-container" action="aanbod.html" role="search">
+            <input type="search" name="q" placeholder="Zoek kaarten, boxes, accessoires…">
+            <button type="submit">Zoeken</button>
+        </form>
+
+        <div class="user-actions">
+            <a href="#" class="action-link cart-link">
+                <span class="action-icon" aria-hidden="true">🛒</span>
+                <span id="cart-total">€0,00</span>
+                <span class="cart-count-badge" id="cart-count">0</span>
+            </a>
+        </div>
+    </header>
+
+    <nav class="category-nav" aria-label="Productcategorieën">
+        <ul>
+            <li><a href="aanbod.html">Pokémon</a></li>
+            <li><a href="aanbod.html">Yu-Gi-Oh!</a></li>
+            <li><a href="aanbod.html">Magic: The Gathering</a></li>
+            <li><a href="aanbod.html">Disney Lorcana</a></li>
+            <li><a href="aanbod.html">One Piece TCG</a></li>
+            <li><a href="aanbod.html">Accessoires</a></li>
+            <li><a href="aanbod.html" class="nav-sale">Sale</a></li>
+        </ul>
+    </nav>
+
+    <section class="page-hero">
+        <h1>Contact</h1>
+        <p>Heb je een vraag over een bestelling, conditie van een kaart of een speciale aanvraag? We reageren doorgaans binnen één werkdag.</p>
+    </section>
+
+    <main class="page-main">
+        <div class="contact-grid">
+            <div class="contact-info">
+                <div class="contact-card">
+                    <h3>E-mail</h3>
+                    <p><a href="mailto:info@tcghub.nl">info@tcghub.nl</a></p>
+                </div>
+                <div class="contact-card">
+                    <h3>Telefoon</h3>
+                    <p>Ma–vr, 09:00–17:00</p>
+                    <p><a href="tel:+31201234567">+31 (0)20 123 4567</a></p>
+                </div>
+                <div class="contact-card">
+                    <h3>Adres</h3>
+                    <p>TCG Hub B.V.<br>Kaartenstraat 42<br>1012 AB Amsterdam<br>Nederland</p>
+                </div>
+                <div class="contact-card">
+                    <h3>Retouradres</h3>
+                    <p>TCG Hub — Retouren<br>Postbus 1234<br>1000 AA Amsterdam</p>
+                </div>
+            </div>
+
+            <form class="contact-form" id="contact-form">
+                <h2>Stuur ons een bericht</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="name">Naam</label>
+                        <input type="text" id="name" name="name" required placeholder="Je volledige naam">
+                    </div>
+                    <div class="form-group">
+                        <label for="email">E-mailadres</label>
+                        <input type="email" id="email" name="email" required placeholder="naam@voorbeeld.nl">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="subject">Onderwerp</label>
+                    <select id="subject" name="subject" required>
+                        <option value="">Kies een onderwerp</option>
+                        <option value="order">Vraag over bestelling</option>
+                        <option value="product">Vraag over product / conditie</option>
+                        <option value="return">Retour of ruil</option>
+                        <option value="wholesale">Groothandel / bulk</option>
+                        <option value="other">Overig</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="order">Bestelnummer (optioneel)</label>
+                    <input type="text" id="order" name="order" placeholder="bijv. TCG-2026-0042">
+                </div>
+                <div class="form-group">
+                    <label for="message">Bericht</label>
+                    <textarea id="message" name="message" required placeholder="Beschrijf je vraag zo duidelijk mogelijk…"></textarea>
+                </div>
+                <button type="submit" class="btn-submit">Verstuur bericht</button>
+                <p class="form-success" id="form-success">Bedankt! Je bericht is verzonden. We nemen zo snel mogelijk contact met je op.</p>
+            </form>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="footer-grid">
+            <div class="footer-col">
+                <div class="footer-brand">TCG<span>HUB</span></div>
+                <p>Een webshop van collectors, voor collectors. Sealed Pokémon, singles en tafel-TCG's — eerlijke conditie en snelle verzending vanuit Nederland.</p>
+            </div>
+            <div class="footer-col">
+                <h4>Klantenservice</h4>
+                <ul>
+                    <li><a href="contact.html">Contact</a></li>
+                    <li><a href="#">Verzending &amp; retourneren</a></li>
+                    <li><a href="veelgestelde-vragen.html">Veelgestelde vragen</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>Informatie</h4>
+                <ul>
+                    <li><a href="over.html">Over TCG Hub</a></li>
+                    <li><a href="voorwaarden-privacy.html">Algemene voorwaarden</a></li>
+                    <li><a href="voorwaarden-privacy.html#privacy">Privacybeleid</a></li>
+                    <li><a href="#">Gradingsschaal</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>Betaalmethoden</h4>
+                <p>iDEAL, PayPal, Bancontact, Visa, Mastercard, Apple Pay.</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 TCG Hub.</p>
+        </div>
+    </footer>
+
+    <script src="js/cart.js"></script>
+    <script>
+        document.getElementById('contact-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            document.getElementById('form-success').classList.add('visible');
+            e.target.reset();
+        });
+    </script>
+</body>
+</html>

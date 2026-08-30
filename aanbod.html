@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Aanbod — Pokémon kaarten &amp; sealed product — TCG Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="style.css?v=2">
+</head>
+<body>
+
+    <div class="top-bar">
+        <div class="top-bar-left">
+            <span>3-5 dagen levertijd</span>
+            <span>Gratis verzending vanaf €100</span>
+            <span>Beoordeeld met 9,4/10 op Trustpilot</span>
+        </div>
+        <div class="top-bar-right">
+            <a href="contact.html">Klantenservice</a>
+            <a href="#">NL | EN</a>
+        </div>
+    </div>
+
+    <header class="main-header">
+        <div class="logo">
+            <a href="index.html">
+                <h1><span class="logo-mark" aria-hidden="true"></span>TCG<span>HUB</span></h1>
+            </a>
+        </div>
+
+        <form class="search-container" action="aanbod.html" role="search">
+            <input type="search" name="q" placeholder="Zoek kaarten, boxes, accessoires…">
+            <button type="submit">Zoeken</button>
+        </form>
+
+        <div class="user-actions">
+            <a href="#" class="action-link cart-link">
+                <span class="action-icon" aria-hidden="true">🛒</span>
+                <span id="cart-total">€0,00</span>
+                <span class="cart-count-badge" id="cart-count">0</span>
+            </a>
+        </div>
+    </header>
+
+    <nav class="category-nav" aria-label="Productcategorieën">
+        <ul>
+            <li><a href="aanbod.html">Pokémon</a></li>
+            <li><a href="aanbod.html">Yu-Gi-Oh!</a></li>
+            <li><a href="aanbod.html">Magic: The Gathering</a></li>
+            <li><a href="aanbod.html">Disney Lorcana</a></li>
+            <li><a href="aanbod.html">One Piece TCG</a></li>
+            <li><a href="aanbod.html">Accessoires</a></li>
+            <li><a href="aanbod.html" class="nav-sale">Sale</a></li>
+        </ul>
+    </nav>
+
+    <section class="page-hero">
+        <h1>Pokémon aanbod</h1>
+        <p>Blader door ons volledige assortiment singles, sealed product en pre-orders. Filter op categorie, set of prijs — alles direct uit voorraad of pre-order.</p>
+    </section>
+
+    <main class="page-main wide">
+        <div class="aanbod-header">
+            <h2>Alle Pokémon producten</h2>
+            <span id="product-count">0 producten</span>
+        </div>
+
+        <div class="filters-bar">
+            <input type="search" id="filter-search" placeholder="Zoek op naam, set of type…" aria-label="Zoeken">
+            <select id="filter-category" aria-label="Categorie">
+                <option value="all">Alle categorieën</option>
+                <option value="single">Singles</option>
+                <option value="sealed">Sealed product</option>
+            </select>
+            <select id="filter-set" aria-label="Set">
+                <option value="all">Alle sets</option>
+            </select>
+            <select id="filter-sort" aria-label="Sorteren">
+                <option value="default">Standaard</option>
+                <option value="price-asc">Prijs: laag → hoog</option>
+                <option value="price-desc">Prijs: hoog → laag</option>
+                <option value="name">Naam A–Z</option>
+            </select>
+        </div>
+
+        <div class="product-grid" id="aanbod-grid"></div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="footer-grid">
+            <div class="footer-col">
+                <div class="footer-brand">TCG<span>HUB</span></div>
+                <p>Een webshop van collectors, voor collectors. Sealed Pokémon, singles en tafel-TCG's — eerlijke conditie en snelle verzending vanuit Nederland.</p>
+            </div>
+            <div class="footer-col">
+                <h4>Klantenservice</h4>
+                <ul>
+                    <li><a href="contact.html">Contact</a></li>
+                    <li><a href="#">Verzending &amp; retourneren</a></li>
+                    <li><a href="veelgestelde-vragen.html">Veelgestelde vragen</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>Informatie</h4>
+                <ul>
+                    <li><a href="over.html">Over TCG Hub</a></li>
+                    <li><a href="voorwaarden-privacy.html">Algemene voorwaarden</a></li>
+                    <li><a href="voorwaarden-privacy.html#privacy">Privacybeleid</a></li>
+                    <li><a href="#">Gradingsschaal</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>Betaalmethoden</h4>
+                <p>iDEAL, PayPal, Bancontact, Visa, Mastercard, Apple Pay.</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 TCG Hub.</p>
+        </div>
+    </footer>
+
+    <script src="js/products.js"></script>
+    <script src="js/cart.js"></script>
+    <script src="js/aanbod.js"></script>
+</body>
+</html>
