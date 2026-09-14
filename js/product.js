@@ -1,10 +1,22 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const params = new URLSearchParams(window.location.search);
     const productId = params.get('id');
-    const product = getProductById(productId);
-
     const container = document.getElementById('product-detail');
     if (!container) return;
+
+    try {
+        await loadProducts();
+    } catch (err) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <h2>Kon producten niet laden</h2>
+                <p>Start de server met <code>npm start</code> en probeer opnieuw.</p>
+            </div>
+        `;
+        return;
+    }
+
+    const product = getProductById(productId);
 
     if (!product) {
         container.innerHTML = `
@@ -14,11 +26,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 <a class="btn-hero" href="aanbod.html">Terug naar aanbod</a>
             </div>
         `;
-        document.title = 'Product niet gevonden — TCG Hub';
+        document.title = 'Product niet gevonden — PokeVault';
         return;
     }
 
-    document.title = `${product.title} — TCG Hub`;
+    document.title = `${product.title} — PokeVault`;
 
     const badgeHtml = product.badge
         ? `<span class="badge ${product.badge}">${product.badge === 'sale' ? 'Sale −15%' : 'Pre-order'}</span>`

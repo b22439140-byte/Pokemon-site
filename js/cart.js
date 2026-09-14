@@ -7,7 +7,7 @@ const Cart = {
 
     load() {
         try {
-            const saved = localStorage.getItem('tcghub-cart');
+            const saved = localStorage.getItem('pokevault-cart');
             if (saved) this.items = JSON.parse(saved);
         } catch {
             this.items = [];
@@ -15,7 +15,7 @@ const Cart = {
     },
 
     save() {
-        localStorage.setItem('tcghub-cart', JSON.stringify(this.items));
+        localStorage.setItem('pokevault-cart', JSON.stringify(this.items));
     },
 
     add(item) {

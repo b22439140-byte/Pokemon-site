@@ -75,10 +75,18 @@ function filterProducts({ category, set, search, sort }) {
     return filtered;
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const grid = document.getElementById('aanbod-grid');
     const countEl = document.getElementById('product-count');
     if (!grid) return;
+
+    try {
+        await loadProducts();
+    } catch (err) {
+        grid.innerHTML = '<p class="empty-state">Producten konden niet worden geladen. Start de server met <code>npm start</code>.</p>';
+        if (countEl) countEl.textContent = '0 producten';
+        return;
+    }
 
     const params = new URLSearchParams(window.location.search);
     const searchInput = document.getElementById('filter-search');

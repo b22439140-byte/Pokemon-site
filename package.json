@@ -1,0 +1,18 @@
+{
+  "name": "pokevault",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PokeVault webshop with admin product backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "multer": "^2.4.0"
+  }
+}

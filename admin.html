@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Admin — Producten — PokeVault</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="style.css?v=2">
+    <style>
+        .admin-shell {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 2rem 5% 4rem;
+        }
+
+        .admin-header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .admin-header h1 {
+            font-family: Syne, sans-serif;
+            font-size: clamp(1.8rem, 4vw, 2.4rem);
+            letter-spacing: -0.02em;
+        }
+
+        .admin-header p {
+            color: var(--muted);
+            margin-top: 0.35rem;
+        }
+
+        .admin-actions {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .admin-panel {
+            display: none;
+        }
+
+        .admin-panel.is-visible {
+            display: block;
+        }
+
+        .login-card {
+            max-width: 420px;
+            margin: 4rem auto;
+            padding: 2rem;
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        .login-card h1 {
+            font-family: Syne, sans-serif;
+            margin-bottom: 0.5rem;
+        }
+
+        .login-card p {
+            color: var(--muted);
+            margin-bottom: 1.5rem;
+        }
+
+        .admin-form,
+        .login-card form {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .admin-form {
+            grid-template-columns: 1fr 1fr;
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        .admin-form .full {
+            grid-column: 1 / -1;
+        }
+
+        .admin-form label,
+        .login-card label {
+            display: grid;
+            gap: 0.35rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--ink-soft);
+        }
+
+        .admin-form input,
+        .admin-form select,
+        .admin-form textarea,
+        .login-card input {
+            width: 100%;
+            padding: 0.7rem 0.85rem;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            font: inherit;
+            background: #fff;
+            color: var(--ink);
+        }
+
+        .admin-form textarea {
+            min-height: 110px;
+            resize: vertical;
+        }
+
+        .admin-form .hint {
+            font-size: 0.78rem;
+            font-weight: 500;
+            color: var(--muted);
+        }
+
+        .admin-form .check-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1.6rem;
+        }
+
+        .admin-form .check-row input {
+            width: auto;
+        }
+
+        .btn-admin,
+        .btn-secondary,
+        .btn-danger {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            padding: 0.75rem 1.2rem;
+            border: none;
+            border-radius: 10px;
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .btn-admin {
+            background: var(--ink);
+            color: #fff;
+        }
+
+        .btn-admin:hover {
+            background: var(--ink-soft);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--line);
+            color: var(--ink);
+        }
+
+        .btn-danger {
+            background: transparent;
+            border: 1px solid #fecaca;
+            color: var(--rose);
+        }
+
+        .btn-danger:hover {
+            background: #fef2f2;
+        }
+
+        .form-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .admin-status {
+            min-height: 1.25rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .admin-status.error {
+            color: var(--rose);
+        }
+
+        .admin-status.ok {
+            color: #15803d;
+        }
+
+        .admin-table-wrap {
+            overflow-x: auto;
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.92rem;
+        }
+
+        .admin-table th,
+        .admin-table td {
+            padding: 0.85rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--line);
+            vertical-align: middle;
+        }
+
+        .admin-table th {
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--muted);
+            background: rgba(12, 18, 34, 0.03);
+        }
+
+        .admin-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .admin-thumb {
+            width: 52px;
+            height: 72px;
+            object-fit: contain;
+            background: #f8f6f1;
+            border-radius: 8px;
+        }
+
+        .admin-row-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .image-preview {
+            display: none;
+            margin-top: 0.75rem;
+            max-width: 160px;
+            border-radius: 12px;
+            border: 1px solid var(--line);
+            background: #f8f6f1;
+        }
+
+        .image-preview.is-visible {
+            display: block;
+        }
+
+        @media (max-width: 760px) {
+            .admin-form {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <div class="top-bar-left">
+            <span>Admin — alleen voor medewerkers</span>
+        </div>
+        <div class="top-bar-right">
+            <a href="index.html">Naar webshop</a>
+        </div>
+    </div>
+
+    <main class="admin-shell">
+        <section id="login-panel" class="admin-panel is-visible">
+            <div class="login-card">
+                <h1>PokeVault Admin</h1>
+                <p>Log in om producten toe te voegen, te wijzigen of te verwijderen.</p>
+                <form id="login-form">
+                    <label>
+                        Wachtwoord
+                        <input type="password" id="admin-password" required autocomplete="current-password">
+                    </label>
+                    <button type="submit" class="btn-admin">Inloggen</button>
+                    <p class="admin-status" id="login-status" role="status"></p>
+                </form>
+            </div>
+        </section>
+
+        <section id="dashboard-panel" class="admin-panel">
+            <div class="admin-header">
+                <div>
+                    <h1>Producten beheren</h1>
+                    <p id="product-total">Laden…</p>
+                </div>
+                <div class="admin-actions">
+                    <button type="button" class="btn-secondary" id="btn-new">Nieuw product</button>
+                    <button type="button" class="btn-secondary" id="btn-logout">Uitloggen</button>
+                </div>
+            </div>
+
+            <form id="product-form" class="admin-form" hidden>
+                <input type="hidden" id="edit-id">
+
+                <label class="full">
+                    Titel *
+                    <input type="text" id="field-title" required placeholder="Bijv. Charizard ex — Obsidian Flames">
+                </label>
+
+                <label>
+                    Merk
+                    <input type="text" id="field-brand" value="Pokémon TCG">
+                </label>
+
+                <label>
+                    Categorie *
+                    <select id="field-category" required>
+                        <option value="single">Single</option>
+                        <option value="sealed">Sealed</option>
+                        <option value="accessory">Accessoire</option>
+                    </select>
+                </label>
+
+                <label>
+                    Prijs (€) *
+                    <input type="number" id="field-price" min="0" step="0.01" required>
+                </label>
+
+                <label>
+                    Oude prijs (€)
+                    <input type="number" id="field-old-price" min="0" step="0.01" placeholder="Optioneel">
+                </label>
+
+                <label>
+                    Badge
+                    <select id="field-badge">
+                        <option value="">Geen</option>
+                        <option value="sale">Sale</option>
+                        <option value="preorder">Pre-order</option>
+                    </select>
+                </label>
+
+                <label>
+                    Set
+                    <input type="text" id="field-set" placeholder="Bijv. Crown Zenith">
+                </label>
+
+                <label>
+                    Type
+                    <input type="text" id="field-type" placeholder="Bijv. Secret Rare / ETB">
+                </label>
+
+                <label>
+                    Conditie
+                    <input type="text" id="field-condition" placeholder="Bijv. Near Mint">
+                </label>
+
+                <label>
+                    Max. aantal
+                    <input type="number" id="field-max-qty" min="1" step="1" value="10">
+                </label>
+
+                <label>
+                    Knoptekst
+                    <input type="text" id="field-button" value="In winkelwagen">
+                </label>
+
+                <label class="check-row">
+                    <input type="checkbox" id="field-in-stock" checked>
+                    Op voorraad
+                </label>
+
+                <label class="full">
+                    Beschrijving
+                    <textarea id="field-description" placeholder="Korte productbeschrijving…"></textarea>
+                </label>
+
+                <label class="full">
+                    Afbeelding uploaden
+                    <input type="file" id="field-image" accept="image/jpeg,image/png,image/webp,image/gif">
+                    <span class="hint">JPEG, PNG, WebP of GIF · max 8 MB</span>
+                    <img id="image-preview" class="image-preview" alt="Voorbeeld">
+                </label>
+
+                <label class="full">
+                    Of afbeeldings-URL
+                    <input type="url" id="field-image-url" placeholder="https://…">
+                    <span class="hint">Gebruik dit als je geen bestand wilt uploaden.</span>
+                </label>
+
+                <div class="full form-actions">
+                    <button type="submit" class="btn-admin" id="btn-save">Product opslaan</button>
+                    <button type="button" class="btn-secondary" id="btn-cancel">Annuleren</button>
+                    <p class="admin-status" id="form-status" role="status"></p>
+                </div>
+            </form>
+
+            <div class="admin-table-wrap">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Foto</th>
+                            <th>Product</th>
+                            <th>Categorie</th>
+                            <th>Prijs</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="products-tbody">
+                        <tr><td colspan="5">Laden…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script src="js/admin.js"></script>
+</body>
+</html>
