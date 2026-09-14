@@ -2,7 +2,7 @@
   "name": "pokevault",
   "version": "1.0.0",
   "private": true,
-  "description": "PokeVault webshop with admin product backend",
+  "description": "PokeVault webshop with product admin backend",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

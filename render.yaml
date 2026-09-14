@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: pokevault
+    runtime: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: PERSIST_DIR
+        value: /var/data
+      - key: ADMIN_PASSWORD
+        sync: false
+    disk:
+      name: pokevault-data
+      mountPath: /var/data
+      sizeGB: 1
