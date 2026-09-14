@@ -6,13 +6,30 @@ const crypto = require('crypto');
 
 const PORT = process.env.PORT || 3000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'pokevault';
-// On Render: attach a Disk at /var/data and set PERSIST_DIR=/var/data
-const PERSIST_DIR = process.env.PERSIST_DIR || path.join(__dirname, 'persist');
 const SEED_FILE = path.join(__dirname, 'data', 'products.json');
+
+function resolvePersistDir() {
+    const candidates = [
+        process.env.PERSIST_DIR,
+        path.join(__dirname, 'persist')
+    ].filter(Boolean);
+
+    for (const dir of candidates) {
+        try {
+            fs.mkdirSync(path.join(dir, 'uploads'), { recursive: true });
+            return dir;
+        } catch (err) {
+            console.warn(`Kan data-map niet gebruiken (${dir}): ${err.message}`);
+        }
+    }
+
+    throw new Error('Geen schrijfbare map voor producten/uploads.');
+}
+
+const PERSIST_DIR = resolvePersistDir();
 const DATA_FILE = path.join(PERSIST_DIR, 'products.json');
 const UPLOADS_DIR = path.join(PERSIST_DIR, 'uploads');
 
-fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 if (!fs.existsSync(DATA_FILE)) {
     const seed = fs.existsSync(SEED_FILE)
         ? fs.readFileSync(SEED_FILE, 'utf8')
@@ -226,7 +243,11 @@ app.delete('/api/products/:id', requireAdmin, (req, res) => {
     res.json({ ok: true });
 });
 
-app.get('/admin', (_req, res) => {
+app.get('/api/health', (_req, res) => {
+    res.json({ ok: true, admin: '/admin', persist: PERSIST_DIR });
+});
+
+app.get(['/admin', '/admin/'], (_req, res) => {
     res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
@@ -234,8 +255,19 @@ app.get('/admin.html', (_req, res) => {
     res.redirect(301, '/admin');
 });
 
+app.get(['/home', '/home/'], (_req, res) => {
+    res.redirect(301, '/');
+});
+
 app.use('/uploads', express.static(UPLOADS_DIR));
-app.use(express.static(__dirname));
+app.use(express.static(__dirname, { extensions: ['html'] }));
+
+app.use((req, res) => {
+    res.status(404).type('text').send(
+        `Pagina niet gevonden: ${req.method} ${req.path}\n` +
+        'Tip: open /admin of /admin.html — start de server met: npm start'
+    );
+});
 
 app.use((err, _req, res, _next) => {
     if (err instanceof multer.MulterError) {
