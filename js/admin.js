@@ -118,14 +118,16 @@ function renderProducts(products) {
 
     tbody.innerHTML = products.map((p) => `
         <tr data-id="${p.id}">
-            <td><img class="admin-thumb" src="${p.image}" alt=""></td>
-            <td>
+            <td class="admin-cell-photo" data-label="">
+                <img class="admin-thumb" src="${p.image}" alt="">
+            </td>
+            <td data-label="Product">
                 <strong>${escapeHtml(p.title)}</strong><br>
                 <span style="color:var(--muted)">${escapeHtml(p.brand || '')}</span>
             </td>
-            <td>${escapeHtml(p.category)}</td>
-            <td>${formatEuro(p.price)}</td>
-            <td>
+            <td class="admin-cell-cat" data-label="Categorie">${escapeHtml(p.category)}</td>
+            <td class="admin-cell-price" data-label="Prijs">${formatEuro(p.price)}</td>
+            <td class="admin-cell-actions" data-label="">
                 <div class="admin-row-actions">
                     <button type="button" class="btn-secondary btn-edit">Bewerken</button>
                     <button type="button" class="btn-danger btn-delete">Verwijderen</button>
