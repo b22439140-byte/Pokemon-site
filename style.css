@@ -753,6 +753,20 @@ img {
     color: white;
 }
 
+.footer-payments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    align-items: center;
+}
+
+.footer-payments img {
+    height: 28px;
+    width: auto;
+    border-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
 .footer-bottom {
     text-align: center;
     padding-top: 1.5rem;
