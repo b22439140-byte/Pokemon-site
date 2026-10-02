@@ -298,6 +298,76 @@
             display: block;
         }
 
+        .image-gallery {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.65rem;
+            margin-top: 0.85rem;
+        }
+
+        .image-gallery:empty {
+            display: none;
+        }
+
+        .image-gallery-item {
+            position: relative;
+            width: 88px;
+            height: 110px;
+            border-radius: 10px;
+            border: 1px solid var(--line);
+            background: #f8f6f1;
+            overflow: hidden;
+        }
+
+        .image-gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+
+        .image-gallery-item.is-primary::after {
+            content: 'Hoofd';
+            position: absolute;
+            left: 4px;
+            bottom: 4px;
+            padding: 0.12rem 0.35rem;
+            border-radius: 999px;
+            background: rgba(12, 18, 34, 0.78);
+            color: #fff;
+            font-size: 0.62rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+
+        .image-gallery-item .btn-remove-image {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 24px;
+            height: 24px;
+            border: none;
+            border-radius: 999px;
+            background: rgba(185, 28, 28, 0.92);
+            color: #fff;
+            font-size: 0.85rem;
+            line-height: 1;
+            cursor: pointer;
+            display: grid;
+            place-items: center;
+            padding: 0;
+        }
+
+        .image-gallery-item .btn-remove-image:hover {
+            background: #991b1b;
+        }
+
+        .image-gallery-item.is-pending {
+            opacity: 0.85;
+            outline: 2px dashed rgba(12, 18, 34, 0.2);
+            outline-offset: -2px;
+        }
+
         @media (max-width: 760px) {
             .admin-shell {
                 padding: 1.25rem 4% 3rem;
@@ -534,6 +604,16 @@
                         <option value="single">Single</option>
                         <option value="sealed">Sealed</option>
                         <option value="accessory">Accessoire</option>
+                        <option value="psa-1">PSA 1</option>
+                        <option value="psa-2">PSA 2</option>
+                        <option value="psa-3">PSA 3</option>
+                        <option value="psa-4">PSA 4</option>
+                        <option value="psa-5">PSA 5</option>
+                        <option value="psa-6">PSA 6</option>
+                        <option value="psa-7">PSA 7</option>
+                        <option value="psa-8">PSA 8</option>
+                        <option value="psa-9">PSA 9</option>
+                        <option value="psa-10">PSA 10</option>
                     </select>
                 </label>
 
@@ -553,6 +633,7 @@
                         <option value="">Geen</option>
                         <option value="sale">Sale</option>
                         <option value="preorder">Pre-order</option>
+                        <option value="en">EN</option>
                     </select>
                 </label>
 
@@ -592,16 +673,16 @@
                 </label>
 
                 <label class="full">
-                    Afbeelding uploaden
-                    <input type="file" id="field-image" accept="image/jpeg,image/png,image/webp,image/gif">
-                    <span class="hint">JPEG, PNG, WebP of GIF · max 8 MB</span>
-                    <img id="image-preview" class="image-preview" alt="Voorbeeld">
+                    Foto’s uploaden
+                    <input type="file" id="field-image" accept="image/jpeg,image/png,image/webp,image/gif" multiple>
+                    <span class="hint">JPEG, PNG, WebP of GIF · meerdere tegelijk · max 10 · grote foto’s worden automatisch verkleind</span>
+                    <div id="image-gallery" class="image-gallery" aria-live="polite"></div>
                 </label>
 
                 <label class="full">
-                    Of afbeeldings-URL
+                    Of afbeeldings-URL toevoegen
                     <input type="url" id="field-image-url" placeholder="https://…">
-                    <span class="hint">Gebruik dit als je geen bestand wilt uploaden.</span>
+                    <span class="hint">Wordt als extra foto toegevoegd bij opslaan.</span>
                 </label>
 
                 <div class="full form-actions">

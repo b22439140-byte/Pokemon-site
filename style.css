@@ -584,6 +584,7 @@ img {
 
 .badge.preorder { background: #1d4ed8; color: white; }
 .badge.sale { background: var(--rose); color: white; }
+.badge.en { background: #0f766e; color: white; }
 
 .card-image {
     height: 240px;
@@ -842,6 +843,42 @@ img {
 .product-detail-image img {
     max-height: 90%;
     max-width: 85%;
+}
+
+.product-detail-thumbs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    margin-top: 0.85rem;
+}
+
+.product-detail-thumb {
+    width: 68px;
+    height: 86px;
+    padding: 0;
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    background: #fff;
+    cursor: pointer;
+    overflow: hidden;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.product-detail-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+    background: #f8f6f1;
+}
+
+.product-detail-thumb:hover {
+    border-color: rgba(12, 18, 34, 0.35);
+}
+
+.product-detail-thumb.is-active {
+    border-color: var(--ink, #0c1222);
+    box-shadow: 0 0 0 1px var(--ink, #0c1222);
 }
 
 .product-detail-title {

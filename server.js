@@ -51,7 +51,7 @@ const upload = multer({
             cb(null, `${Date.now()}-${crypto.randomBytes(12).toString('hex')}${ext}`);
         }
     }),
-    limits: { fileSize: 8 * 1024 * 1024 },
+    limits: { fileSize: 25 * 1024 * 1024 },
     fileFilter: (_req, file, cb) => {
         if (/^image\/(jpeg|png|webp|gif)$/i.test(file.mimetype)) {
             cb(null, true);
@@ -74,6 +74,24 @@ function resolveUploadFile(imageUrl) {
     return path.join(UPLOADS_DIR, path.basename(imageUrl));
 }
 
+function productImages(product) {
+    if (!product) return [];
+    if (Array.isArray(product.images) && product.images.length) {
+        return product.images.filter(Boolean);
+    }
+    return product.image ? [product.image] : [];
+}
+
+function unlinkUploads(paths) {
+    for (const filePath of paths) {
+        if (filePath) fs.unlink(filePath, () => {});
+    }
+}
+
+function unlinkUploadedFiles(files) {
+    unlinkUploads((files || []).map((f) => f.path));
+}
+
 function slugify(text) {
     return String(text)
         .toLowerCase()
@@ -94,7 +112,7 @@ function uniqueId(base, products, excludeId) {
     return id;
 }
 
-function parseProductBody(body, file, existing) {
+function parseProductBody(body, files, existing) {
     const title = String(body.title || '').trim();
     if (!title) throw new Error('Titel is verplicht.');
 
@@ -106,21 +124,45 @@ function parseProductBody(body, file, existing) {
         throw new Error('Ongeldige oude prijs.');
     }
 
-    let image = existing?.image || '';
-    if (file) {
-        image = `/uploads/${file.filename}`;
-    } else if (body.imageUrl && String(body.imageUrl).trim()) {
-        image = String(body.imageUrl).trim();
+    let keepImages = [];
+    try {
+        keepImages = JSON.parse(body.keepImages || '[]');
+    } catch {
+        keepImages = [];
+    }
+    if (!Array.isArray(keepImages)) keepImages = [];
+    keepImages = keepImages.map((url) => String(url).trim()).filter(Boolean);
+
+    // Editing without an explicit keepImages list: preserve existing photos.
+    if (!Object.prototype.hasOwnProperty.call(body, 'keepImages') && existing) {
+        keepImages = productImages(existing);
     }
 
-    if (!image) {
-        throw new Error('Voeg een afbeelding toe of plak een afbeeldings-URL.');
+    const uploaded = (files || []).map((file) => `/uploads/${file.filename}`);
+    const images = [...keepImages, ...uploaded];
+
+    const imageUrl = body.imageUrl && String(body.imageUrl).trim();
+    if (imageUrl && !images.includes(imageUrl)) {
+        images.push(imageUrl);
+    }
+
+    if (!images.length) {
+        throw new Error('Voeg minstens één afbeelding toe of plak een afbeeldings-URL.');
+    }
+
+    if (images.length > 10) {
+        throw new Error('Maximaal 10 afbeeldingen per product.');
     }
 
     const badgeRaw = body.badge === '' || body.badge == null ? null : String(body.badge);
-    const badge = badgeRaw === 'sale' || badgeRaw === 'preorder' ? badgeRaw : null;
+    const badge = ['sale', 'preorder', 'en'].includes(badgeRaw) ? badgeRaw : null;
     const maxQty = Number(body.maxQty);
     const inStock = body.inStock === true || body.inStock === 'true' || body.inStock === 'on' || body.inStock === '1';
+    const allowedCategories = [
+        'single', 'sealed', 'accessory',
+        'psa-1', 'psa-2', 'psa-3', 'psa-4', 'psa-5',
+        'psa-6', 'psa-7', 'psa-8', 'psa-9', 'psa-10'
+    ];
 
     const product = {
         id: existing?.id,
@@ -129,8 +171,9 @@ function parseProductBody(body, file, existing) {
         price,
         oldPrice,
         badge,
-        image,
-        category: ['single', 'sealed', 'accessory'].includes(body.category)
+        image: images[0],
+        images,
+        category: allowedCategories.includes(body.category)
             ? body.category
             : 'single',
         set: body.set === '' || body.set == null ? null : String(body.set).trim(),
@@ -190,43 +233,46 @@ app.get('/api/products/:id', (req, res) => {
     res.json(product);
 });
 
-app.post('/api/products', requireAdmin, upload.single('image'), (req, res) => {
+app.post('/api/products', requireAdmin, upload.array('images', 10), (req, res) => {
     try {
         const products = readProducts();
-        const product = parseProductBody(req.body, req.file, null);
+        const product = parseProductBody(req.body, req.files, null);
         product.id = uniqueId(String(req.body.id || '').trim() || slugify(product.title), products);
         products.push(product);
         writeProducts(products);
         res.status(201).json(product);
     } catch (err) {
-        if (req.file) fs.unlink(req.file.path, () => {});
+        unlinkUploadedFiles(req.files);
         res.status(400).json({ error: err.message || 'Kon product niet opslaan.' });
     }
 });
 
-app.put('/api/products/:id', requireAdmin, upload.single('image'), (req, res) => {
+app.put('/api/products/:id', requireAdmin, upload.array('images', 10), (req, res) => {
     try {
         const products = readProducts();
         const index = products.findIndex((p) => p.id === req.params.id);
         if (index === -1) {
-            if (req.file) fs.unlink(req.file.path, () => {});
+            unlinkUploadedFiles(req.files);
             return res.status(404).json({ error: 'Product niet gevonden.' });
         }
 
         const existing = products[index];
-        const product = parseProductBody(req.body, req.file, existing);
+        const product = parseProductBody(req.body, req.files, existing);
         product.id = existing.id;
 
-        if (req.file) {
-            const oldPath = resolveUploadFile(existing.image);
-            if (oldPath) fs.unlink(oldPath, () => {});
+        const kept = new Set(product.images);
+        for (const url of productImages(existing)) {
+            if (!kept.has(url)) {
+                const oldPath = resolveUploadFile(url);
+                if (oldPath) fs.unlink(oldPath, () => {});
+            }
         }
 
         products[index] = product;
         writeProducts(products);
         res.json(product);
     } catch (err) {
-        if (req.file) fs.unlink(req.file.path, () => {});
+        unlinkUploadedFiles(req.files);
         res.status(400).json({ error: err.message || 'Kon product niet bijwerken.' });
     }
 });
@@ -237,8 +283,10 @@ app.delete('/api/products/:id', requireAdmin, (req, res) => {
     if (index === -1) return res.status(404).json({ error: 'Product niet gevonden.' });
 
     const [removed] = products.splice(index, 1);
-    const oldPath = resolveUploadFile(removed.image);
-    if (oldPath) fs.unlink(oldPath, () => {});
+    for (const url of productImages(removed)) {
+        const oldPath = resolveUploadFile(url);
+        if (oldPath) fs.unlink(oldPath, () => {});
+    }
     writeProducts(products);
     res.json({ ok: true });
 });
@@ -271,6 +319,9 @@ app.use((req, res) => {
 
 app.use((err, _req, res, _next) => {
     if (err instanceof multer.MulterError) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+            return res.status(400).json({ error: 'Afbeelding is te groot (max 25 MB).' });
+        }
         return res.status(400).json({ error: err.message });
     }
     if (err) {

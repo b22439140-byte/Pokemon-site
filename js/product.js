@@ -32,8 +32,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.title = `${product.title} — PokeVault`;
 
-    const badgeHtml = product.badge
-        ? `<span class="badge ${product.badge}">${product.badge === 'sale' ? 'Sale −15%' : 'Pre-order'}</span>`
+    const badgeLabels = { sale: 'Sale −15%', preorder: 'Pre-order', en: 'EN' };
+    const badgeHtml = product.badge && badgeLabels[product.badge]
+        ? `<span class="badge ${product.badge}">${badgeLabels[product.badge]}</span>`
         : '';
 
     const oldPriceHtml = product.oldPrice
@@ -48,6 +49,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     ].filter(Boolean).join('');
 
     const imgStyle = product.imageOpacity ? ` style="opacity: ${product.imageOpacity};"` : '';
+    const images = getProductImages(product);
+    const mainImage = images[0] || product.image || '';
 
     const stockLabel = product.badge === 'preorder'
         ? 'Pre-order — reserveer nu'
@@ -56,12 +59,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     const conditionNote = product.condition
         ? `<div class="product-authenticity">
                <strong>✓ Eerlijk gegradeerd</strong>
-               <span>Visueel gecontroleerd door ons team. Extra foto's op aanvraag via <a href="contact.html">contact</a>.</span>
+               <span>Visueel gecontroleerd door ons team.</span>
            </div>`
         : `<div class="product-authenticity">
                <strong>✓ 100% sealed &amp; authentiek</strong>
                <span>Rechtstreeks via officiële distributeurs. Nooit gerepackaged.</span>
            </div>`;
+
+    const thumbsHtml = images.length > 1
+        ? `<div class="product-detail-thumbs" role="list">
+               ${images.map((src, i) => `
+                   <button type="button"
+                           class="product-detail-thumb${i === 0 ? ' is-active' : ''}"
+                           role="listitem"
+                           data-image="${src.replace(/"/g, '&quot;')}"
+                           aria-label="Foto ${i + 1}">
+                       <img src="${src}" alt="">
+                   </button>
+               `).join('')}
+           </div>`
+        : '';
 
     container.innerHTML = `
         <nav class="breadcrumb" aria-label="Breadcrumb">
@@ -76,8 +93,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             <div class="product-detail-gallery">
                 ${badgeHtml}
                 <div class="card-image product-detail-image">
-                    <img src="${product.image}" alt="${product.title}"${imgStyle}>
+                    <img id="product-main-image" src="${mainImage}" alt="${product.title}"${imgStyle}>
                 </div>
+                ${thumbsHtml}
             </div>
 
             <div class="product-detail-info">
@@ -105,7 +123,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <div class="purchase-group product-detail-purchase"
                      data-product-id="${product.id}"
                      data-product-title="${product.title.replace(/"/g, '&quot;')}"
-                     data-product-image="${product.image}">
+                     data-product-image="${mainImage.replace(/"/g, '&quot;')}">
                     <input type="number" class="qty-input" value="1" min="1" max="${product.maxQty}" data-price="${product.price}" aria-label="Aantal">
                     <button class="btn-add btn-add-large">${product.buttonLabel || 'In winkelwagen'}</button>
                 </div>
@@ -160,4 +178,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
         </section>
     `;
+
+    const mainImg = document.getElementById('product-main-image');
+    container.querySelectorAll('.product-detail-thumb').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const src = btn.dataset.image;
+            if (!src || !mainImg) return;
+            mainImg.src = src;
+            container.querySelectorAll('.product-detail-thumb').forEach((el) => {
+                el.classList.toggle('is-active', el === btn);
+            });
+        });
+    });
 });

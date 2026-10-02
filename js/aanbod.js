@@ -1,6 +1,7 @@
 function renderProductCard(product) {
-    const badgeHtml = product.badge
-        ? `<span class="badge ${product.badge}">${product.badge === 'sale' ? 'Sale −15%' : 'Pre-order'}</span>`
+    const badgeLabels = { sale: 'Sale −15%', preorder: 'Pre-order', en: 'EN' };
+    const badgeHtml = product.badge && badgeLabels[product.badge]
+        ? `<span class="badge ${product.badge}">${badgeLabels[product.badge]}</span>`
         : '';
 
     const oldPriceHtml = product.oldPrice
