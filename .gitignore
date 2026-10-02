@@ -4,3 +4,4 @@ persist/
 uploads/*
 !uploads/.gitkeep
 .env
+*.bundle
