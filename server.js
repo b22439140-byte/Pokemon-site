@@ -292,7 +292,19 @@ app.delete('/api/products/:id', requireAdmin, (req, res) => {
 });
 
 app.get('/api/health', (_req, res) => {
-    res.json({ ok: true, admin: '/admin', persist: PERSIST_DIR });
+    let productCount = 0;
+    try {
+        productCount = readProducts().length;
+    } catch (_) {
+        productCount = -1;
+    }
+    res.json({
+        ok: true,
+        admin: '/admin',
+        persist: PERSIST_DIR,
+        productCount,
+        deployCheck: 'disk-persist-v1'
+    });
 });
 
 app.get(['/admin', '/admin/'], (_req, res) => {
