@@ -37,6 +37,37 @@ if (!fs.existsSync(DATA_FILE)) {
     fs.writeFileSync(DATA_FILE, seed);
 }
 
+// Remove built-in demo products once; keep anything added via admin.
+const DEMO_PRODUCT_IDS = new Set([
+    'paldean-fates-etb',
+    'pikachu-crown-zenith',
+    'charizard-ex-obsidian',
+    'mew-ex-151',
+    'umbreon-vmax-evolving',
+    'lucario-vstar-crown',
+    'gardevoir-ex-sv',
+    'blastoise-base-set',
+    'pokemon-151-booster',
+    'paradox-rift-bb',
+    'temporal-forces-etb',
+    'rayquaza-vmax-evolving',
+    'giratina-vstar-lost-origin',
+    'miraidon-ex-sv',
+    'dragon-shield-sleeves',
+    'charizard-base-set'
+]);
+
+try {
+    const existing = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+    if (Array.isArray(existing) && existing.some((p) => DEMO_PRODUCT_IDS.has(p.id))) {
+        const cleaned = existing.filter((p) => !DEMO_PRODUCT_IDS.has(p.id));
+        fs.writeFileSync(DATA_FILE, JSON.stringify(cleaned, null, 2));
+        console.log(`Demo producten verwijderd (${existing.length - cleaned.length}). Over: ${cleaned.length}.`);
+    }
+} catch (_) {
+    /* ignore corrupt file; API will surface errors */
+}
+
 const app = express();
 const sessions = new Map();
 

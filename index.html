@@ -131,89 +131,8 @@
             <a href="aanbod.html">Bekijk alle producten →</a>
         </div>
 
-        <div class="product-grid">
-            <div class="product-card">
-                <span class="badge preorder">Pre-order</span>
-                <a href="product.html?id=paldean-fates-etb" class="card-image-link">
-                    <div class="card-image">
-                        <img src="https://images.pokemontcg.io/sv4pt5/1_hires.png" alt="Paldean Fates Elite Trainer Box">
-                    </div>
-                </a>
-                <div class="product-brand">Pokémon TCG</div>
-                <h3 class="product-title"><a href="product.html?id=paldean-fates-etb">Scarlet &amp; Violet: Paldean Fates — Elite Trainer Box</a></h3>
-                <div class="product-price-row">
-                    <span class="price-current">€54,95</span>
-                </div>
-                <div class="purchase-group"
-                     data-product-id="paldean-fates-etb"
-                     data-product-title="Scarlet & Violet: Paldean Fates — Elite Trainer Box"
-                     data-product-image="https://images.pokemontcg.io/sv4pt5/1_hires.png">
-                    <input type="number" class="qty-input" value="1" min="1" max="12" data-price="54.95" aria-label="Aantal">
-                    <button class="btn-add">Pre-order</button>
-                </div>
-            </div>
-
-            <div class="product-card">
-                <span class="badge sale">Sale −15%</span>
-                <a href="product.html?id=pikachu-crown-zenith" class="card-image-link">
-                    <div class="card-image">
-                        <img src="https://images.pokemontcg.io/swsh12pt5/160_hires.png" alt="Pikachu Crown Zenith">
-                    </div>
-                </a>
-                <div class="product-brand">Pokémon singles</div>
-                <h3 class="product-title"><a href="product.html?id=pikachu-crown-zenith">Pikachu — Crown Zenith (Secret Rare) — Near Mint</a></h3>
-                <div class="product-price-row">
-                    <span class="price-current">€21,50</span>
-                    <span class="price-old">€25,00</span>
-                </div>
-                <div class="purchase-group"
-                     data-product-id="pikachu-crown-zenith"
-                     data-product-title="Pikachu — Crown Zenith (Secret Rare) — Near Mint"
-                     data-product-image="https://images.pokemontcg.io/swsh12pt5/160_hires.png">
-                    <input type="number" class="qty-input" value="1" min="1" max="5" data-price="21.50" aria-label="Aantal">
-                    <button class="btn-add">In winkelwagen</button>
-                </div>
-            </div>
-
-            <div class="product-card">
-                <a href="product.html?id=charizard-ex-obsidian" class="card-image-link">
-                    <div class="card-image">
-                        <img src="https://images.pokemontcg.io/sv3/223_hires.png" alt="Charizard ex">
-                    </div>
-                </a>
-                <div class="product-brand">Pokémon singles</div>
-                <h3 class="product-title"><a href="product.html?id=charizard-ex-obsidian">Charizard ex — Obsidian Flames (Illustration Rare)</a></h3>
-                <div class="product-price-row">
-                    <span class="price-current">€89,95</span>
-                </div>
-                <div class="purchase-group"
-                     data-product-id="charizard-ex-obsidian"
-                     data-product-title="Charizard ex — Obsidian Flames (Illustration Rare)"
-                     data-product-image="https://images.pokemontcg.io/sv3/223_hires.png">
-                    <input type="number" class="qty-input" value="1" min="1" max="2" data-price="89.95" aria-label="Aantal">
-                    <button class="btn-add">In winkelwagen</button>
-                </div>
-            </div>
-
-            <div class="product-card">
-                <a href="product.html?id=dragon-shield-sleeves" class="card-image-link">
-                    <div class="card-image">
-                        <img src="https://images.pokemontcg.io/base1/2_hires.png" alt="Dragon Shield sleeves" style="opacity: 0.55;">
-                    </div>
-                </a>
-                <div class="product-brand">Dragon Shield</div>
-                <h3 class="product-title"><a href="product.html?id=dragon-shield-sleeves">Matte Black Standard Size Sleeves (100 stuks)</a></h3>
-                <div class="product-price-row">
-                    <span class="price-current">€10,95</span>
-                </div>
-                <div class="purchase-group"
-                     data-product-id="dragon-shield-sleeves"
-                     data-product-title="Matte Black Standard Size Sleeves (100 stuks)"
-                     data-product-image="https://images.pokemontcg.io/base1/2_hires.png">
-                    <input type="number" class="qty-input" value="1" min="1" max="20" data-price="10.95" aria-label="Aantal">
-                    <button class="btn-add">In winkelwagen</button>
-                </div>
-            </div>
+        <div class="product-grid" id="home-product-grid">
+            <p class="empty-state">Nog geen producten. Voeg ze toe via de admin.</p>
         </div>
     </main>
 
@@ -250,6 +169,25 @@
         </div>
     </footer>
 
+    <script src="js/products.js"></script>
+    <script src="js/aanbod.js"></script>
     <script src="js/cart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const grid = document.getElementById('home-product-grid');
+            if (!grid || typeof loadProducts !== 'function' || typeof renderProductGrid !== 'function') return;
+            try {
+                await loadProducts();
+                const featured = PRODUCTS.filter((p) => p.category !== 'accessory').slice(0, 4);
+                if (!featured.length) {
+                    grid.innerHTML = '<p class="empty-state">Nog geen producten. Voeg ze toe via de admin.</p>';
+                    return;
+                }
+                renderProductGrid(grid, featured);
+            } catch (_) {
+                grid.innerHTML = '<p class="empty-state">Producten konden niet worden geladen.</p>';
+            }
+        });
+    </script>
 </body>
 </html>
