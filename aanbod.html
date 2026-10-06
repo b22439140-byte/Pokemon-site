@@ -47,19 +47,22 @@
 
     <nav class="category-nav" aria-label="Productcategorieën">
         <ul>
-            <li><a href="aanbod.html">Pokémon</a></li>
-            <li><a href="aanbod.html">Yu-Gi-Oh!</a></li>
-            <li><a href="aanbod.html">Magic: The Gathering</a></li>
-            <li><a href="aanbod.html">Disney Lorcana</a></li>
-            <li><a href="aanbod.html">One Piece TCG</a></li>
-            <li><a href="aanbod.html">Accessoires</a></li>
-            <li><a href="aanbod.html" class="nav-sale">Sale</a></li>
+            <li><a href="aanbod.html?category=pokemon">Pokémon</a></li>
+            <li><a href="aanbod.html?category=boxen">Boxen</a></li>
+            <li><a href="aanbod.html?category=boosters">Boosters</a></li>
+            <li><a href="aanbod.html?category=tins">Tins</a></li>
+            <li><a href="aanbod.html?category=blisters">Blisters</a></li>
+            <li><a href="aanbod.html?category=losse-kaarten">Losse Kaarten</a></li>
+            <li><a href="aanbod.html?category=accessoires">Accessoires</a></li>
+            <li><a href="aanbod.html?category=andere-tcg">Andere TCG</a></li>
+            <li><a href="aanbod.html?category=lego">LEGO</a></li>
+            <li><a href="aanbod.html?category=sale" class="nav-sale">Sale</a></li>
         </ul>
     </nav>
 
     <section class="page-hero">
-        <h1>Pokémon aanbod</h1>
-        <p>Blader door ons volledige assortiment singles, sealed product en pre-orders. Filter op categorie, set of prijs — alles direct uit voorraad of pre-order.</p>
+        <h1 id="aanbod-hero-title">Aanbod</h1>
+        <p id="aanbod-hero-text">Blader door ons volledige assortiment. Filter op categorie, set of prijs — alles direct uit voorraad of pre-order.</p>
     </section>
 
     <main class="page-main wide">
@@ -72,18 +75,29 @@
             <input type="search" id="filter-search" placeholder="Zoek op naam, set of type…" aria-label="Zoeken">
             <select id="filter-category" aria-label="Categorie">
                 <option value="all">Alle categorieën</option>
-                <option value="single">Singles</option>
-                <option value="sealed">Sealed product</option>
-                <option value="psa-1">PSA 1</option>
-                <option value="psa-2">PSA 2</option>
-                <option value="psa-3">PSA 3</option>
-                <option value="psa-4">PSA 4</option>
-                <option value="psa-5">PSA 5</option>
-                <option value="psa-6">PSA 6</option>
-                <option value="psa-7">PSA 7</option>
-                <option value="psa-8">PSA 8</option>
-                <option value="psa-9">PSA 9</option>
-                <option value="psa-10">PSA 10</option>
+                <option value="pokemon">Pokémon</option>
+                <option value="boxen">Boxen</option>
+                <option value="boosters">Boosters</option>
+                <option value="tins">Tins</option>
+                <option value="blisters">Blisters</option>
+                <option value="losse-kaarten">Losse Kaarten</option>
+                <option value="accessoires">Accessoires</option>
+                <option value="andere-tcg">Andere TCG</option>
+                <option value="lego">LEGO</option>
+                <option value="sale">Sale</option>
+            </select>
+            <select id="filter-psa" aria-label="PSA-grade">
+                <option value="all">Alle PSA</option>
+                <option value="1">PSA 1</option>
+                <option value="2">PSA 2</option>
+                <option value="3">PSA 3</option>
+                <option value="4">PSA 4</option>
+                <option value="5">PSA 5</option>
+                <option value="6">PSA 6</option>
+                <option value="7">PSA 7</option>
+                <option value="8">PSA 8</option>
+                <option value="9">PSA 9</option>
+                <option value="10">PSA 10</option>
             </select>
             <select id="filter-set" aria-label="Set">
                 <option value="all">Alle sets</option>
@@ -139,6 +153,7 @@
         </div>
     </footer>
 
+    <script src="js/categories.js"></script>
     <script src="js/products.js"></script>
     <script src="js/cart.js"></script>
     <script src="js/aanbod.js"></script>

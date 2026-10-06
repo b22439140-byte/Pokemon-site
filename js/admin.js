@@ -199,7 +199,8 @@ function openForm(product) {
     document.getElementById('edit-id').value = product.id;
     document.getElementById('field-title').value = product.title || '';
     document.getElementById('field-brand').value = product.brand || '';
-    document.getElementById('field-category').value = product.category || 'single';
+    document.getElementById('field-category').value = product.category || 'pokemon';
+    document.getElementById('field-psa').value = product.psa || '';
     document.getElementById('field-price').value = product.price ?? '';
     document.getElementById('field-old-price').value = product.oldPrice ?? '';
     document.getElementById('field-badge').value = product.badge || '';
@@ -242,7 +243,7 @@ function renderProducts(products) {
                 <strong>${escapeHtml(p.title)}</strong><br>
                 <span style="color:var(--muted)">${escapeHtml(p.brand || '')}</span>
             </td>
-            <td class="admin-cell-cat" data-label="Categorie">${escapeHtml(p.category)}</td>
+            <td class="admin-cell-cat" data-label="Categorie">${escapeHtml(categoryLabel(p.category))}${p.psa ? ` · ${escapeHtml(psaLabel(p.psa))}` : ''}</td>
             <td class="admin-cell-price" data-label="Prijs">${formatEuro(p.price)}</td>
             <td class="admin-cell-actions" data-label="">
                 <div class="admin-row-actions">
@@ -352,6 +353,7 @@ productForm.addEventListener('submit', async (e) => {
     formData.append('title', document.getElementById('field-title').value.trim());
     formData.append('brand', document.getElementById('field-brand').value.trim());
     formData.append('category', document.getElementById('field-category').value);
+    formData.append('psa', document.getElementById('field-psa').value);
     formData.append('price', document.getElementById('field-price').value);
     formData.append('oldPrice', document.getElementById('field-old-price').value);
     formData.append('badge', document.getElementById('field-badge').value);

@@ -21,6 +21,9 @@ async function loadProducts() {
     if (!res.ok) {
         throw new Error('Producten konden niet worden geladen.');
     }
-    PRODUCTS = await res.json();
+    const data = await res.json();
+    PRODUCTS = Array.isArray(data)
+        ? data.map((p) => (typeof normalizeProductMeta === 'function' ? normalizeProductMeta(p) : p))
+        : [];
     return PRODUCTS;
 }

@@ -229,43 +229,70 @@ img {
 
 /* --- Category nav --- */
 .category-nav {
-    background: white;
-    border-bottom: 1px solid var(--line);
+    background: #2d9cdb;
+    border-bottom: none;
     padding: 0 5%;
+    position: relative;
+    z-index: 20;
 }
 
-.category-nav ul {
+.category-nav > ul {
     list-style: none;
     display: flex;
-    gap: 1.75rem;
+    align-items: stretch;
+    gap: 1.35rem;
     overflow-x: auto;
     scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
 }
 
-.category-nav ul::-webkit-scrollbar {
+.category-nav > ul::-webkit-scrollbar {
     display: none;
 }
 
-.category-nav a {
-    display: inline-block;
-    color: var(--ink-soft);
+.category-nav > ul > li {
+    position: relative;
+    flex-shrink: 0;
+    display: flex;
+    align-items: stretch;
+}
+
+.category-nav > ul > li > a {
+    display: inline-flex;
+    align-items: center;
+    color: #fff;
     text-decoration: none;
     font-weight: 650;
     font-size: 0.9rem;
     padding: 0.95rem 0;
     border-bottom: 2px solid transparent;
     white-space: nowrap;
-    transition: color 0.2s, border-color 0.2s;
+    transition: color 0.2s, border-color 0.2s, background 0.2s;
 }
 
-.category-nav a:hover,
-.category-nav a:focus {
-    color: var(--ink);
-    border-bottom-color: var(--gold);
+.category-nav > ul > li > a:hover,
+.category-nav > ul > li > a:focus,
+.category-nav > ul > li > a.is-active {
+    color: #fff;
+    border-bottom-color: rgba(255, 255, 255, 0.85);
 }
 
-.nav-sale {
-    color: var(--rose) !important;
+.category-nav > ul > li > a.nav-sale {
+    background: var(--rose);
+    color: #fff !important;
+    border-bottom: none;
+    border-radius: 0;
+    padding: 0.95rem 0.85rem;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.category-nav > ul > li > a.nav-sale:hover,
+.category-nav > ul > li > a.nav-sale:focus,
+.category-nav > ul > li > a.nav-sale.is-active {
+    background: var(--rose-hover);
+    border-bottom: none;
+    color: #fff !important;
 }
 
 /* --- Hero --- */
@@ -1906,14 +1933,18 @@ body.cart-open {
         padding: 0 4%;
     }
 
-    .category-nav ul {
+    .category-nav > ul {
         gap: 1.1rem;
         -webkit-overflow-scrolling: touch;
     }
 
-    .category-nav a {
+    .category-nav > ul > li > a {
         font-size: 0.84rem;
         padding: 0.8rem 0;
+    }
+
+    .category-nav > ul > li > a.nav-sale {
+        padding: 0.8rem 0.7rem;
     }
 
     .hero,

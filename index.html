@@ -47,13 +47,16 @@
 
     <nav class="category-nav" aria-label="Productcategorieën">
         <ul>
-            <li><a href="aanbod.html">Pokémon</a></li>
-            <li><a href="aanbod.html">Yu-Gi-Oh!</a></li>
-            <li><a href="aanbod.html">Magic: The Gathering</a></li>
-            <li><a href="aanbod.html">Disney Lorcana</a></li>
-            <li><a href="aanbod.html">One Piece TCG</a></li>
-            <li><a href="aanbod.html">Accessoires</a></li>
-            <li><a href="aanbod.html" class="nav-sale">Sale</a></li>
+            <li><a href="aanbod.html?category=pokemon">Pokémon</a></li>
+            <li><a href="aanbod.html?category=boxen">Boxen</a></li>
+            <li><a href="aanbod.html?category=boosters">Boosters</a></li>
+            <li><a href="aanbod.html?category=tins">Tins</a></li>
+            <li><a href="aanbod.html?category=blisters">Blisters</a></li>
+            <li><a href="aanbod.html?category=losse-kaarten">Losse Kaarten</a></li>
+            <li><a href="aanbod.html?category=accessoires">Accessoires</a></li>
+            <li><a href="aanbod.html?category=andere-tcg">Andere TCG</a></li>
+            <li><a href="aanbod.html?category=lego">LEGO</a></li>
+            <li><a href="aanbod.html?category=sale" class="nav-sale">Sale</a></li>
         </ul>
     </nav>
 
@@ -176,6 +179,7 @@
         </div>
     </footer>
 
+    <script src="js/categories.js"></script>
     <script src="js/products.js"></script>
     <script src="js/aanbod.js"></script>
     <script src="js/cart.js"></script>
@@ -185,7 +189,7 @@
             if (!grid || typeof loadProducts !== 'function' || typeof renderProductGrid !== 'function') return;
             try {
                 await loadProducts();
-                const featured = PRODUCTS.filter((p) => p.category !== 'accessory').slice(0, 4);
+                const featured = PRODUCTS.filter((p) => p.category !== 'accessoires').slice(0, 4);
                 if (!featured.length) {
                     grid.innerHTML = '<p class="empty-state">Nog geen producten. Voeg ze toe via de admin.</p>';
                     return;

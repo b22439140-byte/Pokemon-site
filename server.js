@@ -92,8 +92,45 @@ const upload = multer({
     }
 });
 
+const ALLOWED_CATEGORIES = [
+    'pokemon', 'boxen', 'boosters', 'tins', 'blisters',
+    'losse-kaarten', 'accessoires', 'andere-tcg', 'lego', 'sale'
+];
+
+const LEGACY_CATEGORY_MAP = {
+    single: 'losse-kaarten',
+    sealed: 'boxen',
+    accessory: 'accessoires'
+};
+
+function normalizeProduct(product) {
+    if (!product || typeof product !== 'object') return product;
+
+    let category = product.category;
+    let psa = product.psa == null || product.psa === '' ? null : String(product.psa);
+
+    const psaMatch = typeof category === 'string' && category.match(/^psa-(\d{1,2})$/);
+    if (psaMatch) {
+        psa = psaMatch[1];
+        category = 'losse-kaarten';
+    } else if (LEGACY_CATEGORY_MAP[category]) {
+        category = LEGACY_CATEGORY_MAP[category];
+    }
+
+    if (!ALLOWED_CATEGORIES.includes(category)) {
+        category = 'pokemon';
+    }
+
+    if (psa && !/^(10|[1-9])$/.test(psa)) {
+        psa = null;
+    }
+
+    return { ...product, category, psa };
+}
+
 function readProducts() {
-    return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+    const products = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+    return Array.isArray(products) ? products.map(normalizeProduct) : products;
 }
 
 function writeProducts(products) {
@@ -189,11 +226,8 @@ function parseProductBody(body, files, existing) {
     const badge = ['sale', 'preorder', 'en'].includes(badgeRaw) ? badgeRaw : null;
     const maxQty = Number(body.maxQty);
     const inStock = body.inStock === true || body.inStock === 'true' || body.inStock === 'on' || body.inStock === '1';
-    const allowedCategories = [
-        'single', 'sealed', 'accessory',
-        'psa-1', 'psa-2', 'psa-3', 'psa-4', 'psa-5',
-        'psa-6', 'psa-7', 'psa-8', 'psa-9', 'psa-10'
-    ];
+    const psaRaw = body.psa === '' || body.psa == null ? null : String(body.psa);
+    const psa = psaRaw && /^(10|[1-9])$/.test(psaRaw) ? psaRaw : null;
 
     const product = {
         id: existing?.id,
@@ -204,9 +238,10 @@ function parseProductBody(body, files, existing) {
         badge,
         image: images[0],
         images,
-        category: allowedCategories.includes(body.category)
+        category: ALLOWED_CATEGORIES.includes(body.category)
             ? body.category
-            : 'single',
+            : 'pokemon',
+        psa,
         set: body.set === '' || body.set == null ? null : String(body.set).trim(),
         type: String(body.type || '').trim() || 'Overig',
         condition: body.condition === '' || body.condition == null

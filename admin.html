@@ -601,19 +601,33 @@
                 <label>
                     Categorie *
                     <select id="field-category" required>
-                        <option value="single">Single</option>
-                        <option value="sealed">Sealed</option>
-                        <option value="accessory">Accessoire</option>
-                        <option value="psa-1">PSA 1</option>
-                        <option value="psa-2">PSA 2</option>
-                        <option value="psa-3">PSA 3</option>
-                        <option value="psa-4">PSA 4</option>
-                        <option value="psa-5">PSA 5</option>
-                        <option value="psa-6">PSA 6</option>
-                        <option value="psa-7">PSA 7</option>
-                        <option value="psa-8">PSA 8</option>
-                        <option value="psa-9">PSA 9</option>
-                        <option value="psa-10">PSA 10</option>
+                        <option value="pokemon">Pokémon</option>
+                        <option value="boxen">Boxen</option>
+                        <option value="boosters">Boosters</option>
+                        <option value="tins">Tins</option>
+                        <option value="blisters">Blisters</option>
+                        <option value="losse-kaarten">Losse Kaarten</option>
+                        <option value="accessoires">Accessoires</option>
+                        <option value="andere-tcg">Andere TCG</option>
+                        <option value="lego">LEGO</option>
+                        <option value="sale">Sale</option>
+                    </select>
+                </label>
+
+                <label>
+                    PSA-grade
+                    <select id="field-psa">
+                        <option value="">Geen PSA</option>
+                        <option value="1">PSA 1</option>
+                        <option value="2">PSA 2</option>
+                        <option value="3">PSA 3</option>
+                        <option value="4">PSA 4</option>
+                        <option value="5">PSA 5</option>
+                        <option value="6">PSA 6</option>
+                        <option value="7">PSA 7</option>
+                        <option value="8">PSA 8</option>
+                        <option value="9">PSA 9</option>
+                        <option value="10">PSA 10</option>
                     </select>
                 </label>
 
@@ -711,6 +725,7 @@
         </section>
     </main>
 
+    <script src="js/categories.js"></script>
     <script src="js/admin.js"></script>
 </body>
 </html>

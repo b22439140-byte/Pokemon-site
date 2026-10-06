@@ -42,6 +42,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         : '';
 
     const metaItems = [
+        product.category && `<li><strong>Categorie:</strong> <a href="aanbod.html?category=${product.category}">${typeof categoryLabel === 'function' ? categoryLabel(product.category) : product.category}</a></li>`,
+        product.psa && `<li><strong>PSA:</strong> ${typeof psaLabel === 'function' ? psaLabel(product.psa) : `PSA ${product.psa}`}</li>`,
         product.set && `<li><strong>Set:</strong> ${product.set}</li>`,
         product.type && `<li><strong>Type:</strong> ${product.type}</li>`,
         product.condition && `<li><strong>Conditie:</strong> ${product.condition}</li>`,
@@ -84,7 +86,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         <nav class="breadcrumb" aria-label="Breadcrumb">
             <a href="index.html">Home</a>
             <span aria-hidden="true">/</span>
-            <a href="aanbod.html">Aanbod</a>
+            <a href="aanbod.html${product.category ? `?category=${product.category}` : ''}">${typeof categoryLabel === 'function' && product.category ? categoryLabel(product.category) : 'Aanbod'}</a>
             <span aria-hidden="true">/</span>
             <span>${product.title}</span>
         </nav>

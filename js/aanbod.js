@@ -1,3 +1,16 @@
+const CATEGORY_HERO_COPY = {
+    pokemon: 'Alle Pokémon producten — sealed, singles en meer.',
+    boxen: 'Elite Trainer Boxes, booster boxes en collectieboxen.',
+    boosters: 'Losse boosters en booster packs uit lopende en oudere sets.',
+    tins: 'Tins en metalen collectieverpakkingen.',
+    blisters: 'Blister packs en mini-collecties.',
+    'losse-kaarten': 'Singles en losse kaarten, klaar voor je deck of verzameling.',
+    accessoires: 'Sleeves, binders, toploaders en meer.',
+    'andere-tcg': 'Yu-Gi-Oh!, Magic, Lorcana, One Piece en andere TCG’s.',
+    lego: 'LEGO sets met Pokémon en verzamelthema.',
+    sale: 'Aanbiedingen en afgeprijsde producten.'
+};
+
 function renderProductCard(product) {
     const badgeLabels = { sale: 'Sale −15%', preorder: 'Pre-order', en: 'EN' };
     const badgeHtml = product.badge && badgeLabels[product.badge]
@@ -9,6 +22,11 @@ function renderProductCard(product) {
         : '';
 
     const imgStyle = product.imageOpacity ? ` style="opacity: ${product.imageOpacity};"` : '';
+    const catLabel = typeof categoryLabel === 'function' ? categoryLabel(product.category) : product.category;
+    const metaBits = [
+        catLabel,
+        product.psa ? psaLabel(product.psa) : ''
+    ].filter(Boolean);
 
     return `
         <article class="product-card">
@@ -18,7 +36,7 @@ function renderProductCard(product) {
                     <img src="${product.image}" alt="${product.title}"${imgStyle}>
                 </div>
             </a>
-            <div class="product-brand">${product.brand}</div>
+            <div class="product-brand">${metaBits.join(' · ')}</div>
             <h3 class="product-title">
                 <a href="product.html?id=${product.id}">${product.title}</a>
             </h3>
@@ -45,23 +63,32 @@ function renderProductGrid(container, products) {
     container.innerHTML = products.map(renderProductCard).join('');
 }
 
-function filterProducts({ category, set, search, sort }) {
-    let filtered = PRODUCTS.filter(p => p.category !== 'accessory');
+function filterProducts({ category, psa, set, search, sort }) {
+    let filtered = [...PRODUCTS];
 
     if (category && category !== 'all') {
-        filtered = filtered.filter(p => p.category === category);
+        if (category === 'sale') {
+            filtered = filtered.filter((p) => p.category === 'sale' || p.badge === 'sale');
+        } else {
+            filtered = filtered.filter((p) => p.category === category);
+        }
+    }
+
+    if (psa && psa !== 'all') {
+        filtered = filtered.filter((p) => String(p.psa || '') === String(psa));
     }
 
     if (set && set !== 'all') {
-        filtered = filtered.filter(p => p.set === set);
+        filtered = filtered.filter((p) => p.set === set);
     }
 
     if (search) {
         const q = search.toLowerCase();
-        filtered = filtered.filter(p =>
+        filtered = filtered.filter((p) =>
             p.title.toLowerCase().includes(q) ||
             (p.set && p.set.toLowerCase().includes(q)) ||
-            (p.type && p.type.toLowerCase().includes(q))
+            (p.type && p.type.toLowerCase().includes(q)) ||
+            (p.brand && p.brand.toLowerCase().includes(q))
         );
     }
 
@@ -74,6 +101,14 @@ function filterProducts({ category, set, search, sort }) {
     }
 
     return filtered;
+}
+
+function setActiveCategoryNav(category) {
+    document.querySelectorAll('.category-nav a[href*="category="]').forEach((link) => {
+        const url = new URL(link.href, window.location.origin);
+        const linkCat = url.searchParams.get('category');
+        link.classList.toggle('is-active', Boolean(category) && linkCat === category);
+    });
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -92,34 +127,88 @@ document.addEventListener('DOMContentLoaded', async () => {
     const params = new URLSearchParams(window.location.search);
     const searchInput = document.getElementById('filter-search');
     const categorySelect = document.getElementById('filter-category');
+    const psaSelect = document.getElementById('filter-psa');
     const setSelect = document.getElementById('filter-set');
     const sortSelect = document.getElementById('filter-sort');
+    const headingEl = document.querySelector('.aanbod-header h2');
+    const heroTitle = document.getElementById('aanbod-hero-title');
+    const heroText = document.getElementById('aanbod-hero-text');
 
     if (params.get('q') && searchInput) {
         searchInput.value = params.get('q');
     }
 
-    const sets = [...new Set(PRODUCTS.filter(p => p.set).map(p => p.set))].sort();
-    sets.forEach(set => {
+    const urlCategory = params.get('category');
+    if (urlCategory && categorySelect) {
+        const option = [...categorySelect.options].find((o) => o.value === urlCategory);
+        if (option) categorySelect.value = urlCategory;
+    }
+
+    const urlPsa = params.get('psa');
+    if (urlPsa && psaSelect) {
+        const option = [...psaSelect.options].find((o) => o.value === urlPsa);
+        if (option) psaSelect.value = urlPsa;
+    }
+
+    setActiveCategoryNav(categorySelect?.value !== 'all' ? categorySelect.value : urlCategory);
+
+    const sets = [...new Set(PRODUCTS.filter((p) => p.set).map((p) => p.set))].sort();
+    sets.forEach((set) => {
         const opt = document.createElement('option');
         opt.value = set;
         opt.textContent = set;
         setSelect.appendChild(opt);
     });
 
+    function syncUrl() {
+        const next = new URLSearchParams();
+        const q = searchInput.value.trim();
+        if (q) next.set('q', q);
+        if (categorySelect.value !== 'all') next.set('category', categorySelect.value);
+        if (psaSelect.value !== 'all') next.set('psa', psaSelect.value);
+        if (setSelect.value !== 'all') next.set('set', setSelect.value);
+        if (sortSelect.value !== 'default') next.set('sort', sortSelect.value);
+        const qs = next.toString();
+        const path = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
+        window.history.replaceState({}, '', path);
+    }
+
+    function updateHero(category) {
+        const label = category && category !== 'all' ? categoryLabel(category) : 'Aanbod';
+        if (heroTitle) heroTitle.textContent = label;
+        if (heroText) {
+            heroText.textContent = category && category !== 'all' && CATEGORY_HERO_COPY[category]
+                ? CATEGORY_HERO_COPY[category]
+                : 'Blader door ons volledige assortiment. Filter op categorie, set of prijs — alles direct uit voorraad of pre-order.';
+        }
+        document.title = category && category !== 'all'
+            ? `${label} — PokeVault`
+            : 'Aanbod — PokeVault';
+    }
+
     function updateGrid() {
+        const category = categorySelect.value;
         const products = filterProducts({
-            category: categorySelect.value,
+            category,
+            psa: psaSelect.value,
             set: setSelect.value,
             search: searchInput.value.trim(),
             sort: sortSelect.value
         });
 
         countEl.textContent = `${products.length} product${products.length !== 1 ? 'en' : ''}`;
+        if (headingEl) {
+            headingEl.textContent = category !== 'all'
+                ? categoryLabel(category)
+                : 'Alle producten';
+        }
+        updateHero(category);
+        setActiveCategoryNav(category !== 'all' ? category : null);
         renderProductGrid(grid, products);
+        syncUrl();
     }
 
-    [searchInput, categorySelect, setSelect, sortSelect].forEach(el => {
+    [searchInput, categorySelect, psaSelect, setSelect, sortSelect].forEach((el) => {
         el.addEventListener('input', updateGrid);
         el.addEventListener('change', updateGrid);
     });
