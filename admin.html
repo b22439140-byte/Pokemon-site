@@ -368,6 +368,24 @@
             outline-offset: -2px;
         }
 
+        .ai-scan-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.65rem 1rem;
+            margin-top: 0.35rem;
+        }
+
+        .ai-scan-row .hint {
+            flex: 1 1 14rem;
+            margin: 0;
+        }
+
+        .ai-scan-row .admin-status {
+            flex: 1 1 100%;
+            margin: 0;
+        }
+
         @media (max-width: 760px) {
             .admin-shell {
                 padding: 1.25rem 4% 3rem;
@@ -692,6 +710,12 @@
                     <span class="hint">JPEG, PNG, WebP of GIF · meerdere tegelijk · max 10 · grote foto’s worden automatisch verkleind</span>
                     <div id="image-gallery" class="image-gallery" aria-live="polite"></div>
                 </label>
+
+                <div class="full ai-scan-row">
+                    <button type="button" class="btn-secondary" id="btn-ai-scan">AI invullen</button>
+                    <span class="hint">Gebruikt de eerste nieuwe foto om titel, categorie, set e.d. in te vullen. Prijs vul je zelf in.</span>
+                    <p class="admin-status" id="ai-scan-status" role="status"></p>
+                </div>
 
                 <label class="full">
                     Of afbeeldings-URL toevoegen

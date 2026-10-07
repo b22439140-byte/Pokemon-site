@@ -6,6 +6,8 @@ const crypto = require('crypto');
 
 const PORT = process.env.PORT || 3000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'pokevault';
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
+const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash';
 const SEED_FILE = path.join(__dirname, 'data', 'products.json');
 
 function resolvePersistDir() {
@@ -289,6 +291,127 @@ app.get('/api/admin/me', requireAdmin, (_req, res) => {
     res.json({ ok: true });
 });
 
+const SCAN_ALLOWED_BADGES = ['sale', 'preorder', 'en'];
+
+function extractJsonObject(text) {
+    const raw = String(text || '').trim();
+    if (!raw) throw new Error('Lege AI-respons.');
+
+    const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    const candidate = fenced ? fenced[1].trim() : raw;
+    const start = candidate.indexOf('{');
+    const end = candidate.lastIndexOf('}');
+    if (start === -1 || end === -1 || end <= start) {
+        throw new Error('Kon geen JSON in AI-respons vinden.');
+    }
+    return JSON.parse(candidate.slice(start, end + 1));
+}
+
+function normalizeScanFields(parsed) {
+    const data = parsed && typeof parsed === 'object' ? parsed : {};
+    let category = String(data.category || '').trim();
+    if (LEGACY_CATEGORY_MAP[category]) category = LEGACY_CATEGORY_MAP[category];
+    if (!ALLOWED_CATEGORIES.includes(category)) category = 'pokemon';
+
+    const psaRaw = data.psa == null || data.psa === '' ? '' : String(data.psa).trim();
+    const psa = /^(10|[1-9])$/.test(psaRaw) ? psaRaw : '';
+
+    const badgeRaw = data.badge == null || data.badge === '' ? '' : String(data.badge).trim();
+    const badge = SCAN_ALLOWED_BADGES.includes(badgeRaw) ? badgeRaw : '';
+
+    return {
+        title: String(data.title || '').trim(),
+        brand: String(data.brand || 'Pokémon TCG').trim() || 'Pokémon TCG',
+        category,
+        psa,
+        set: data.set == null || data.set === '' ? '' : String(data.set).trim(),
+        type: data.type == null || data.type === '' ? '' : String(data.type).trim(),
+        condition: data.condition == null || data.condition === '' ? '' : String(data.condition).trim(),
+        badge,
+        description: String(data.description || '').trim()
+    };
+}
+
+async function scanCardWithOpenRouter(imagePath, mimeType) {
+    if (!OPENROUTER_API_KEY) {
+        throw new Error(
+            'OPENROUTER_API_KEY ontbreekt. Stel deze env-variabele in en herstart de server.'
+        );
+    }
+
+    const buffer = fs.readFileSync(imagePath);
+    const dataUrl = `data:${mimeType || 'image/jpeg'};base64,${buffer.toString('base64')}`;
+
+    const categoriesList = ALLOWED_CATEGORIES.join(', ');
+    const prompt = [
+        'You are helping a Dutch Pokémon TCG shop fill product admin fields from a product photo.',
+        'Identify the product (single card, sealed product, accessory, LEGO, etc.).',
+        'Return STRICT JSON only — no markdown, no commentary — with exactly these keys:',
+        'title, brand, category, psa, set, type, condition, badge, description',
+        `category MUST be one of: ${categoriesList}`,
+        'psa: string "1"–"10" if a PSA slab grade is clearly visible, otherwise ""',
+        'badge: one of "sale", "preorder", "en", or ""',
+        'brand: usually "Pokémon TCG" unless clearly another TCG/brand',
+        'type: rarity or product type (e.g. Secret Rare, ETB, Booster Box)',
+        'condition: only if clearly readable (e.g. Near Mint); else ""',
+        'description: short Dutch product description (1–2 sentences)',
+        'title: clear Dutch/English shop title including set name when known',
+        'Do NOT invent a price. Do not include price fields.'
+    ].join('\n');
+
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://pokevault.local',
+            'X-Title': 'PokeVault Admin'
+        },
+        body: JSON.stringify({
+            model: OPENROUTER_MODEL,
+            temperature: 0.2,
+            messages: [
+                {
+                    role: 'user',
+                    content: [
+                        { type: 'text', text: prompt },
+                        { type: 'image_url', image_url: { url: dataUrl } }
+                    ]
+                }
+            ]
+        })
+    });
+
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+        const detail =
+            payload?.error?.message ||
+            payload?.message ||
+            `OpenRouter fout (${response.status})`;
+        throw new Error(detail);
+    }
+
+    const content = payload?.choices?.[0]?.message?.content;
+    const parsed = extractJsonObject(content);
+    return normalizeScanFields(parsed);
+}
+
+app.post('/api/admin/scan-card', requireAdmin, upload.single('image'), async (req, res) => {
+    const file = req.file;
+    if (!file) {
+        return res.status(400).json({ error: 'Upload één afbeelding om te scannen.' });
+    }
+
+    try {
+        const fields = await scanCardWithOpenRouter(file.path, file.mimetype);
+        res.json({ fields });
+    } catch (err) {
+        res.status(400).json({ error: err.message || 'Kaart herkennen mislukt.' });
+    } finally {
+        fs.unlink(file.path, () => {});
+    }
+});
+
 app.get('/api/products', (_req, res) => {
     res.json(readProducts());
 });
@@ -413,4 +536,9 @@ app.listen(PORT, () => {
     console.log(`Admin: http://localhost:${PORT}/admin`);
     console.log(`Data: ${PERSIST_DIR}`);
     console.log(`Wachtwoord: ${ADMIN_PASSWORD === 'pokevault' ? 'pokevault (wijzig via ADMIN_PASSWORD)' : '(uit ADMIN_PASSWORD)'}`);
+    if (OPENROUTER_API_KEY) {
+        console.log(`AI scan: aan (model ${OPENROUTER_MODEL})`);
+    } else {
+        console.log('AI scan: uit — stel OPENROUTER_API_KEY in om kaarten te herkennen');
+    }
 });

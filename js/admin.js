@@ -11,6 +11,8 @@ const tbody = document.getElementById('products-tbody');
 const productTotal = document.getElementById('product-total');
 const imageInput = document.getElementById('field-image');
 const imageGallery = document.getElementById('image-gallery');
+const aiScanStatus = document.getElementById('ai-scan-status');
+const btnAiScan = document.getElementById('btn-ai-scan');
 
 /** @type {string[]} */
 let keptImages = [];
@@ -186,6 +188,7 @@ function resetForm() {
     imageInput.value = '';
     renderImageGallery();
     setStatus(formStatus, '');
+    setStatus(aiScanStatus, '');
 }
 
 function openForm(product) {
@@ -219,6 +222,7 @@ function openForm(product) {
 
     document.getElementById('btn-save').textContent = 'Wijzigingen opslaan';
     setStatus(formStatus, '');
+    setStatus(aiScanStatus, '');
     productForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
@@ -331,6 +335,20 @@ imageInput.addEventListener('change', () => {
     renderImageGallery();
 });
 
+function applyScanFields(fields) {
+    if (!fields || typeof fields !== 'object') return;
+
+    if (fields.title) document.getElementById('field-title').value = fields.title;
+    if (fields.brand) document.getElementById('field-brand').value = fields.brand;
+    if (fields.category) document.getElementById('field-category').value = fields.category;
+    document.getElementById('field-psa').value = fields.psa || '';
+    document.getElementById('field-badge').value = fields.badge || '';
+    document.getElementById('field-set').value = fields.set || '';
+    document.getElementById('field-type').value = fields.type || '';
+    document.getElementById('field-condition').value = fields.condition || '';
+    if (fields.description) document.getElementById('field-description').value = fields.description;
+}
+
 imageGallery.addEventListener('click', (e) => {
     const btn = e.target.closest('.btn-remove-image');
     if (!btn) return;
@@ -342,6 +360,34 @@ imageGallery.addEventListener('click', (e) => {
         if (removed) URL.revokeObjectURL(removed.url);
     }
     renderImageGallery();
+});
+
+btnAiScan.addEventListener('click', async () => {
+    if (!pendingImages.length) {
+        setStatus(aiScanStatus, 'Upload eerst een foto, daarna kun je AI invullen gebruiken.', 'error');
+        return;
+    }
+
+    btnAiScan.disabled = true;
+    setStatus(aiScanStatus, 'Kaart wordt herkend…');
+
+    try {
+        const prepared = await prepareImageUpload(pendingImages[0].file);
+        const formData = new FormData();
+        formData.append('image', prepared);
+
+        const data = await api('/api/admin/scan-card', {
+            method: 'POST',
+            body: formData
+        });
+
+        applyScanFields(data.fields);
+        setStatus(aiScanStatus, 'Velden ingevuld — controleer en vul de prijs in.', 'ok');
+    } catch (err) {
+        setStatus(aiScanStatus, err.message, 'error');
+    } finally {
+        btnAiScan.disabled = false;
+    }
 });
 
 productForm.addEventListener('submit', async (e) => {
