@@ -63,12 +63,26 @@ function renderProductGrid(container, products) {
     container.innerHTML = products.map(renderProductCard).join('');
 }
 
+/** Parent “Pokémon” nav: alle Pokémon-producten, niet alleen category=pokemon. */
+const POKEMON_CATEGORIES = new Set([
+    'pokemon',
+    'boxen',
+    'boosters',
+    'tins',
+    'blisters',
+    'losse-kaarten',
+    'accessoires',
+    'sale'
+]);
+
 function filterProducts({ category, psa, set, search, sort }) {
     let filtered = [...PRODUCTS];
 
     if (category && category !== 'all') {
         if (category === 'sale') {
             filtered = filtered.filter((p) => p.category === 'sale' || p.badge === 'sale');
+        } else if (category === 'pokemon') {
+            filtered = filtered.filter((p) => POKEMON_CATEGORIES.has(p.category));
         } else {
             filtered = filtered.filter((p) => p.category === category);
         }
