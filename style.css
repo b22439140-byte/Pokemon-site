@@ -722,6 +722,84 @@ img {
     transform: scale(0.98);
 }
 
+.btn-contact {
+    flex-grow: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: var(--ink);
+    border: 2px solid var(--ink);
+    border-radius: 10px;
+    padding: 0.75rem;
+    font: inherit;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s, transform 0.15s;
+}
+
+.btn-contact:hover {
+    background: var(--ink);
+    color: #fff;
+}
+
+.btn-contact:active {
+    transform: scale(0.98);
+}
+
+.btn-contact-large {
+    padding: 1rem 1.25rem;
+    font-size: 1.05rem;
+}
+
+.contact-product-banner {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-bottom: 1.25rem;
+    padding: 0.85rem 1rem;
+    background: #f8f6f1;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+}
+
+.contact-product-banner img {
+    width: 56px;
+    height: 72px;
+    object-fit: contain;
+    background: #fff;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.contact-product-banner strong {
+    display: block;
+    font-size: 0.95rem;
+    margin-bottom: 0.15rem;
+}
+
+.contact-product-banner span {
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
+.form-error {
+    display: none;
+    margin-top: 0.85rem;
+    padding: 0.75rem 1rem;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 10px;
+    color: var(--rose);
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.form-error.visible {
+    display: block;
+}
+
 /* --- Footer --- */
 .site-footer {
     background: var(--ink);
@@ -2061,7 +2139,8 @@ body.cart-open {
         min-height: 44px;
     }
 
-    .btn-add {
+    .btn-add,
+    .btn-contact {
         min-height: 44px;
         font-size: 0.82rem;
         padding: 0.65rem 0.5rem;
@@ -2120,7 +2199,8 @@ body.cart-open {
         min-height: 44px;
     }
 
-    .product-detail-purchase .btn-add-large {
+    .product-detail-purchase .btn-add-large,
+    .product-detail-purchase .btn-contact-large {
         width: 100%;
         min-height: 48px;
     }

@@ -126,8 +126,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                      data-product-id="${product.id}"
                      data-product-title="${product.title.replace(/"/g, '&quot;')}"
                      data-product-image="${mainImage.replace(/"/g, '&quot;')}">
-                    <input type="number" class="qty-input" value="1" min="1" max="${product.maxQty}" data-price="${product.price}" aria-label="Aantal">
-                    <button class="btn-add btn-add-large">${product.buttonLabel || 'In winkelwagen'}</button>
+                    ${product.purchaseMode === 'contact'
+                        ? `<a class="btn-contact btn-contact-large" href="contact.html?product=${encodeURIComponent(product.id)}">Neem contact op</a>`
+                        : `<input type="number" class="qty-input" value="1" min="1" max="${product.maxQty}" data-price="${product.price}" aria-label="Aantal">
+                           <button type="button" class="btn-add btn-add-large">${product.buttonLabel || 'In winkelwagen'}</button>`}
                 </div>
 
                 <div class="product-trust-grid">

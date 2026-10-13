@@ -386,6 +386,108 @@
             margin: 0;
         }
 
+        .admin-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .admin-tab {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.65rem 1rem;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            background: #fff;
+            font: inherit;
+            font-weight: 700;
+            color: var(--ink-soft);
+            cursor: pointer;
+        }
+
+        .admin-tab.is-active {
+            background: var(--ink);
+            border-color: var(--ink);
+            color: #fff;
+        }
+
+        .admin-tab-badge {
+            display: inline-grid;
+            place-items: center;
+            min-width: 1.35rem;
+            height: 1.35rem;
+            padding: 0 0.35rem;
+            border-radius: 999px;
+            background: var(--rose);
+            color: #fff;
+            font-size: 0.72rem;
+            font-weight: 800;
+        }
+
+        .admin-tab:not(.is-active) .admin-tab-badge {
+            background: #fee2e2;
+            color: var(--rose);
+        }
+
+        .admin-view[hidden] {
+            display: none !important;
+        }
+
+        .contact-meta {
+            color: var(--muted);
+            font-size: 0.82rem;
+            margin-top: 0.25rem;
+        }
+
+        .contact-message {
+            white-space: pre-wrap;
+            word-break: break-word;
+            max-width: 36rem;
+            line-height: 1.45;
+        }
+
+        .contact-status {
+            display: inline-block;
+            padding: 0.2rem 0.55rem;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+        }
+
+        .contact-status.is-new {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .contact-status.is-done {
+            background: #ecfdf5;
+            color: #15803d;
+        }
+
+        .contact-product-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            margin-top: 0.45rem;
+            padding: 0.35rem 0.55rem;
+            background: #f8f6f1;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+
+        .contact-product-chip img {
+            width: 28px;
+            height: 36px;
+            object-fit: contain;
+            background: #fff;
+            border-radius: 4px;
+        }
+
         @media (max-width: 760px) {
             .admin-shell {
                 padding: 1.25rem 4% 3rem;
@@ -594,12 +696,32 @@
         <section id="dashboard-panel" class="admin-panel">
             <div class="admin-header">
                 <div>
-                    <h1>Producten beheren</h1>
+                    <h1>Dashboard</h1>
+                    <p>Beheer producten en bekijk contactaanvragen.</p>
+                </div>
+                <div class="admin-actions">
+                    <button type="button" class="btn-secondary" id="btn-logout">Uitloggen</button>
+                </div>
+            </div>
+
+            <div class="admin-tabs" role="tablist" aria-label="Dashboard secties">
+                <button type="button" class="admin-tab is-active" id="tab-products" data-view="products" role="tab" aria-selected="true">
+                    Producten
+                </button>
+                <button type="button" class="admin-tab" id="tab-contacts" data-view="contacts" role="tab" aria-selected="false">
+                    Contactaanvragen
+                    <span class="admin-tab-badge" id="contacts-badge" hidden>0</span>
+                </button>
+            </div>
+
+            <div id="view-products" class="admin-view">
+            <div class="admin-header" style="margin-bottom:1.25rem">
+                <div>
+                    <h2 style="font-family:Syne,sans-serif;font-size:1.35rem;letter-spacing:-0.02em">Producten</h2>
                     <p id="product-total">Laden…</p>
                 </div>
                 <div class="admin-actions">
                     <button type="button" class="btn-secondary" id="btn-new">Nieuw product</button>
-                    <button type="button" class="btn-secondary" id="btn-logout">Uitloggen</button>
                 </div>
             </div>
 
@@ -690,8 +812,12 @@
                 </label>
 
                 <label>
-                    Knoptekst
-                    <input type="text" id="field-button" value="In winkelwagen">
+                    Actieknop
+                    <select id="field-purchase-mode">
+                        <option value="cart">In winkelwagen</option>
+                        <option value="contact">Neem contact op</option>
+                    </select>
+                    <span class="hint">Contact stuurt bezoekers naar het formulier; antwoorden zie je bij Contactaanvragen.</span>
                 </label>
 
                 <label class="check-row">
@@ -738,13 +864,40 @@
                             <th>Product</th>
                             <th>Categorie</th>
                             <th>Prijs</th>
+                            <th>Actie</th>
                             <th></th>
                         </tr>
                     </thead>
                     <tbody id="products-tbody">
-                        <tr><td colspan="5">Laden…</td></tr>
+                        <tr><td colspan="6">Laden…</td></tr>
                     </tbody>
                 </table>
+            </div>
+            </div>
+
+            <div id="view-contacts" class="admin-view" hidden>
+                <div class="admin-header" style="margin-bottom:1.25rem">
+                    <div>
+                        <h2 style="font-family:Syne,sans-serif;font-size:1.35rem;letter-spacing:-0.02em">Contactaanvragen</h2>
+                        <p id="contacts-total">Laden…</p>
+                    </div>
+                </div>
+                <div class="admin-table-wrap">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Datum</th>
+                                <th>Contact</th>
+                                <th>Bericht</th>
+                                <th>Status</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="contacts-tbody">
+                            <tr><td colspan="5">Laden…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </section>
     </main>

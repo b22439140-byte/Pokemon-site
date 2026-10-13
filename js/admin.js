@@ -8,11 +8,18 @@ const loginStatus = document.getElementById('login-status');
 const productForm = document.getElementById('product-form');
 const formStatus = document.getElementById('form-status');
 const tbody = document.getElementById('products-tbody');
+const contactsTbody = document.getElementById('contacts-tbody');
 const productTotal = document.getElementById('product-total');
+const contactsTotal = document.getElementById('contacts-total');
+const contactsBadge = document.getElementById('contacts-badge');
 const imageInput = document.getElementById('field-image');
 const imageGallery = document.getElementById('image-gallery');
 const aiScanStatus = document.getElementById('ai-scan-status');
 const btnAiScan = document.getElementById('btn-ai-scan');
+const viewProducts = document.getElementById('view-products');
+const viewContacts = document.getElementById('view-contacts');
+const tabProducts = document.getElementById('tab-products');
+const tabContacts = document.getElementById('tab-contacts');
 
 /** @type {string[]} */
 let keptImages = [];
@@ -175,11 +182,32 @@ function renderImageGallery() {
     `).join('');
 }
 
+function switchView(view) {
+    const isProducts = view === 'products';
+    viewProducts.hidden = !isProducts;
+    viewContacts.hidden = isProducts;
+    tabProducts.classList.toggle('is-active', isProducts);
+    tabContacts.classList.toggle('is-active', !isProducts);
+    tabProducts.setAttribute('aria-selected', String(isProducts));
+    tabContacts.setAttribute('aria-selected', String(!isProducts));
+}
+
+function formatDateTime(iso) {
+    try {
+        return new Intl.DateTimeFormat('nl-NL', {
+            dateStyle: 'medium',
+            timeStyle: 'short'
+        }).format(new Date(iso));
+    } catch {
+        return iso || '';
+    }
+}
+
 function resetForm() {
     productForm.reset();
     document.getElementById('edit-id').value = '';
     document.getElementById('field-brand').value = 'Pokémon TCG';
-    document.getElementById('field-button').value = 'In winkelwagen';
+    document.getElementById('field-purchase-mode').value = 'cart';
     document.getElementById('field-max-qty').value = '10';
     document.getElementById('field-in-stock').checked = true;
     document.getElementById('btn-save').textContent = 'Product opslaan';
@@ -211,7 +239,7 @@ function openForm(product) {
     document.getElementById('field-type').value = product.type || '';
     document.getElementById('field-condition').value = product.condition || '';
     document.getElementById('field-max-qty').value = product.maxQty ?? 10;
-    document.getElementById('field-button').value = product.buttonLabel || 'In winkelwagen';
+    document.getElementById('field-purchase-mode').value = product.purchaseMode === 'contact' ? 'contact' : 'cart';
     document.getElementById('field-in-stock').checked = product.inStock !== false;
     document.getElementById('field-description').value = product.description || '';
     document.getElementById('field-image-url').value = '';
@@ -230,13 +258,14 @@ function renderProducts(products) {
     productTotal.textContent = `${products.length} product${products.length !== 1 ? 'en' : ''}`;
 
     if (!products.length) {
-        tbody.innerHTML = '<tr><td colspan="5">Nog geen producten. Voeg er een toe.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6">Nog geen producten. Voeg er een toe.</td></tr>';
         return;
     }
 
     tbody.innerHTML = products.map((p) => {
         const images = productImages(p);
         const count = images.length;
+        const actionLabel = p.purchaseMode === 'contact' ? 'Contact' : 'Winkelwagen';
         return `
         <tr data-id="${p.id}">
             <td class="admin-cell-photo" data-label="">
@@ -249,6 +278,7 @@ function renderProducts(products) {
             </td>
             <td class="admin-cell-cat" data-label="Categorie">${escapeHtml(categoryLabel(p.category))}${p.psa ? ` · ${escapeHtml(psaLabel(p.psa))}` : ''}</td>
             <td class="admin-cell-price" data-label="Prijs">${formatEuro(p.price)}</td>
+            <td data-label="Actie">${escapeHtml(actionLabel)}</td>
             <td class="admin-cell-actions" data-label="">
                 <div class="admin-row-actions">
                     <button type="button" class="btn-secondary btn-edit">Bewerken</button>
@@ -257,6 +287,64 @@ function renderProducts(products) {
             </td>
         </tr>
     `;
+    }).join('');
+}
+
+function renderContacts(contacts) {
+    const newCount = contacts.filter((c) => c.status !== 'done').length;
+    contactsTotal.textContent = `${contacts.length} bericht${contacts.length !== 1 ? 'en' : ''}` +
+        (newCount ? ` · ${newCount} nieuw` : '');
+
+    if (newCount > 0) {
+        contactsBadge.hidden = false;
+        contactsBadge.textContent = String(newCount);
+    } else {
+        contactsBadge.hidden = true;
+    }
+
+    if (!contacts.length) {
+        contactsTbody.innerHTML = '<tr><td colspan="5">Nog geen contactaanvragen.</td></tr>';
+        return;
+    }
+
+    contactsTbody.innerHTML = contacts.map((c) => {
+        const isDone = c.status === 'done';
+        const productChip = c.productTitle
+            ? `<div class="contact-product-chip">
+                   ${c.productImage ? `<img src="${escapeHtml(c.productImage)}" alt="">` : ''}
+                   <span>${escapeHtml(c.productTitle)}${c.productPrice != null ? ` · ${formatEuro(c.productPrice)}` : ''}</span>
+               </div>`
+            : '';
+        const phoneLine = c.phone
+            ? `<div class="contact-meta"><a href="tel:${escapeHtml(c.phone)}">${escapeHtml(c.phone)}</a></div>`
+            : '';
+        const orderLine = c.order
+            ? `<div class="contact-meta">Bestelling: ${escapeHtml(c.order)}</div>`
+            : '';
+
+        return `
+        <tr data-contact-id="${c.id}">
+            <td data-label="Datum">${escapeHtml(formatDateTime(c.createdAt))}</td>
+            <td data-label="Contact">
+                <strong>${escapeHtml(c.name)}</strong>
+                <div class="contact-meta"><a href="mailto:${escapeHtml(c.email)}">${escapeHtml(c.email)}</a></div>
+                ${phoneLine}
+                <div class="contact-meta">${escapeHtml(c.subjectLabel || c.subject || '')}</div>
+                ${orderLine}
+                ${productChip}
+            </td>
+            <td data-label="Bericht"><div class="contact-message">${escapeHtml(c.message || '')}</div></td>
+            <td data-label="Status">
+                <span class="contact-status ${isDone ? 'is-done' : 'is-new'}">${isDone ? 'Afgehandeld' : 'Nieuw'}</span>
+            </td>
+            <td class="admin-cell-actions" data-label="">
+                <div class="admin-row-actions">
+                    <button type="button" class="btn-secondary btn-contact-toggle">${isDone ? 'Als nieuw' : 'Afgehandeld'}</button>
+                    <button type="button" class="btn-danger btn-contact-delete">Verwijderen</button>
+                </div>
+            </td>
+        </tr>
+        `;
     }).join('');
 }
 
@@ -274,6 +362,16 @@ async function loadProducts() {
     return products;
 }
 
+async function loadContacts() {
+    const contacts = await api('/api/admin/contacts');
+    renderContacts(contacts);
+    return contacts;
+}
+
+async function loadDashboard() {
+    await Promise.all([loadProducts(), loadContacts()]);
+}
+
 loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     setStatus(loginStatus, 'Bezig…');
@@ -287,7 +385,8 @@ loginForm.addEventListener('submit', async (e) => {
         });
         setToken(data.token);
         showDashboard();
-        await loadProducts();
+        switchView('products');
+        await loadDashboard();
         setStatus(loginStatus, '');
     } catch (err) {
         setStatus(loginStatus, err.message, 'error');
@@ -302,6 +401,12 @@ document.getElementById('btn-logout').addEventListener('click', async () => {
     }
     clearToken();
     showLogin();
+});
+
+tabProducts.addEventListener('click', () => switchView('products'));
+tabContacts.addEventListener('click', () => {
+    switchView('contacts');
+    loadContacts().catch(() => {});
 });
 
 document.getElementById('btn-new').addEventListener('click', () => openForm(null));
@@ -407,7 +512,7 @@ productForm.addEventListener('submit', async (e) => {
     formData.append('type', document.getElementById('field-type').value.trim());
     formData.append('condition', document.getElementById('field-condition').value.trim());
     formData.append('maxQty', document.getElementById('field-max-qty').value);
-    formData.append('buttonLabel', document.getElementById('field-button').value.trim());
+    formData.append('purchaseMode', document.getElementById('field-purchase-mode').value);
     formData.append('inStock', document.getElementById('field-in-stock').checked ? 'true' : 'false');
     formData.append('description', document.getElementById('field-description').value.trim());
     formData.append('keepImages', JSON.stringify(keptImages));
@@ -474,6 +579,37 @@ tbody.addEventListener('click', async (e) => {
     }
 });
 
+contactsTbody.addEventListener('click', async (e) => {
+    const row = e.target.closest('tr[data-contact-id]');
+    if (!row) return;
+    const id = row.dataset.contactId;
+
+    if (e.target.classList.contains('btn-contact-toggle')) {
+        const currentlyDone = e.target.textContent.includes('Als nieuw');
+        try {
+            await api(`/api/admin/contacts/${encodeURIComponent(id)}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: currentlyDone ? 'new' : 'done' })
+            });
+            await loadContacts();
+        } catch (err) {
+            alert(err.message);
+        }
+        return;
+    }
+
+    if (e.target.classList.contains('btn-contact-delete')) {
+        if (!confirm('Dit bericht verwijderen?')) return;
+        try {
+            await api(`/api/admin/contacts/${encodeURIComponent(id)}`, { method: 'DELETE' });
+            await loadContacts();
+        } catch (err) {
+            alert(err.message);
+        }
+    }
+});
+
 (async function init() {
     const token = getToken();
     if (!token) return;
@@ -481,7 +617,8 @@ tbody.addEventListener('click', async (e) => {
     try {
         await api('/api/admin/me');
         showDashboard();
-        await loadProducts();
+        switchView('products');
+        await loadDashboard();
     } catch (_) {
         clearToken();
         showLogin();

@@ -30,6 +30,7 @@ function resolvePersistDir() {
 
 const PERSIST_DIR = resolvePersistDir();
 const DATA_FILE = path.join(PERSIST_DIR, 'products.json');
+const CONTACTS_FILE = path.join(PERSIST_DIR, 'contacts.json');
 const UPLOADS_DIR = path.join(PERSIST_DIR, 'uploads');
 
 if (!fs.existsSync(DATA_FILE)) {
@@ -37,6 +38,10 @@ if (!fs.existsSync(DATA_FILE)) {
         ? fs.readFileSync(SEED_FILE, 'utf8')
         : '[]';
     fs.writeFileSync(DATA_FILE, seed);
+}
+
+if (!fs.existsSync(CONTACTS_FILE)) {
+    fs.writeFileSync(CONTACTS_FILE, '[]');
 }
 
 // Remove built-in demo products once; keep anything added via admin.
@@ -105,6 +110,16 @@ const LEGACY_CATEGORY_MAP = {
     accessory: 'accessoires'
 };
 
+const ALLOWED_PURCHASE_MODES = ['cart', 'contact'];
+const CONTACT_SUBJECT_LABELS = {
+    order: 'Vraag over bestelling',
+    product: 'Vraag over product / conditie',
+    return: 'Retour of ruil',
+    wholesale: 'Groothandel / bulk',
+    interest: 'Interesse in product',
+    other: 'Overig'
+};
+
 function normalizeProduct(product) {
     if (!product || typeof product !== 'object') return product;
 
@@ -127,7 +142,14 @@ function normalizeProduct(product) {
         psa = null;
     }
 
-    return { ...product, category, psa };
+    let purchaseMode = product.purchaseMode;
+    if (!ALLOWED_PURCHASE_MODES.includes(purchaseMode)) {
+        const label = String(product.buttonLabel || '').toLowerCase();
+        purchaseMode = /contact|neem contact/i.test(label) ? 'contact' : 'cart';
+    }
+    const buttonLabel = purchaseMode === 'contact' ? 'Neem contact op' : 'In winkelwagen';
+
+    return { ...product, category, psa, purchaseMode, buttonLabel };
 }
 
 function readProducts() {
@@ -137,6 +159,19 @@ function readProducts() {
 
 function writeProducts(products) {
     fs.writeFileSync(DATA_FILE, JSON.stringify(products, null, 2));
+}
+
+function readContacts() {
+    try {
+        const contacts = JSON.parse(fs.readFileSync(CONTACTS_FILE, 'utf8'));
+        return Array.isArray(contacts) ? contacts : [];
+    } catch {
+        return [];
+    }
+}
+
+function writeContacts(contacts) {
+    fs.writeFileSync(CONTACTS_FILE, JSON.stringify(contacts, null, 2));
 }
 
 function resolveUploadFile(imageUrl) {
@@ -231,6 +266,13 @@ function parseProductBody(body, files, existing) {
     const psaRaw = body.psa === '' || body.psa == null ? null : String(body.psa);
     const psa = psaRaw && /^(10|[1-9])$/.test(psaRaw) ? psaRaw : null;
 
+    let purchaseMode = String(body.purchaseMode || '').trim();
+    if (!ALLOWED_PURCHASE_MODES.includes(purchaseMode)) {
+        const legacyLabel = String(body.buttonLabel || existing?.buttonLabel || '').toLowerCase();
+        purchaseMode = /contact|neem contact/i.test(legacyLabel) ? 'contact' : 'cart';
+    }
+    const buttonLabel = purchaseMode === 'contact' ? 'Neem contact op' : 'In winkelwagen';
+
     const product = {
         id: existing?.id,
         title,
@@ -252,7 +294,8 @@ function parseProductBody(body, files, existing) {
         description: String(body.description || '').trim(),
         inStock: body.inStock == null ? (existing?.inStock ?? true) : inStock,
         maxQty: Number.isFinite(maxQty) && maxQty > 0 ? Math.floor(maxQty) : 10,
-        buttonLabel: String(body.buttonLabel || 'In winkelwagen').trim() || 'In winkelwagen'
+        purchaseMode,
+        buttonLabel
     };
 
     if (body.imageOpacity !== '' && body.imageOpacity != null) {
@@ -480,18 +523,114 @@ app.delete('/api/products/:id', requireAdmin, (req, res) => {
     res.json({ ok: true });
 });
 
+app.post('/api/contact', (req, res) => {
+    try {
+        const name = String(req.body?.name || '').trim();
+        const email = String(req.body?.email || '').trim();
+        const phone = String(req.body?.phone || '').trim();
+        const subject = String(req.body?.subject || '').trim();
+        const order = String(req.body?.order || '').trim();
+        const message = String(req.body?.message || '').trim();
+        const productId = String(req.body?.productId || '').trim();
+        const productTitle = String(req.body?.productTitle || '').trim();
+
+        if (!name || name.length > 120) {
+            return res.status(400).json({ error: 'Vul een geldige naam in.' });
+        }
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 200) {
+            return res.status(400).json({ error: 'Vul een geldig e-mailadres in.' });
+        }
+        if (phone && phone.length > 40) {
+            return res.status(400).json({ error: 'Telefoonnummer is te lang.' });
+        }
+        if (!Object.prototype.hasOwnProperty.call(CONTACT_SUBJECT_LABELS, subject)) {
+            return res.status(400).json({ error: 'Kies een geldig onderwerp.' });
+        }
+        if (!message || message.length < 5 || message.length > 4000) {
+            return res.status(400).json({ error: 'Schrijf een bericht van minimaal 5 tekens.' });
+        }
+        if (order.length > 80) {
+            return res.status(400).json({ error: 'Bestelnummer is te lang.' });
+        }
+
+        let resolvedProduct = null;
+        if (productId) {
+            resolvedProduct = readProducts().find((p) => p.id === productId) || null;
+        }
+
+        const contact = {
+            id: crypto.randomBytes(12).toString('hex'),
+            createdAt: new Date().toISOString(),
+            name,
+            email,
+            phone: phone || null,
+            subject,
+            subjectLabel: CONTACT_SUBJECT_LABELS[subject],
+            order: order || null,
+            message,
+            productId: resolvedProduct?.id || productId || null,
+            productTitle: resolvedProduct?.title || productTitle || null,
+            productImage: resolvedProduct?.image || null,
+            productPrice: resolvedProduct?.price ?? null,
+            status: 'new'
+        };
+
+        const contacts = readContacts();
+        contacts.unshift(contact);
+        writeContacts(contacts);
+        res.status(201).json({ ok: true, id: contact.id });
+    } catch (err) {
+        res.status(400).json({ error: err.message || 'Kon bericht niet opslaan.' });
+    }
+});
+
+app.get('/api/admin/contacts', requireAdmin, (_req, res) => {
+    res.json(readContacts());
+});
+
+app.patch('/api/admin/contacts/:id', requireAdmin, (req, res) => {
+    const contacts = readContacts();
+    const index = contacts.findIndex((c) => c.id === req.params.id);
+    if (index === -1) return res.status(404).json({ error: 'Bericht niet gevonden.' });
+
+    const status = String(req.body?.status || '').trim();
+    if (!['new', 'done'].includes(status)) {
+        return res.status(400).json({ error: 'Ongeldige status.' });
+    }
+
+    contacts[index] = { ...contacts[index], status };
+    writeContacts(contacts);
+    res.json(contacts[index]);
+});
+
+app.delete('/api/admin/contacts/:id', requireAdmin, (req, res) => {
+    const contacts = readContacts();
+    const index = contacts.findIndex((c) => c.id === req.params.id);
+    if (index === -1) return res.status(404).json({ error: 'Bericht niet gevonden.' });
+    contacts.splice(index, 1);
+    writeContacts(contacts);
+    res.json({ ok: true });
+});
+
 app.get('/api/health', (_req, res) => {
     let productCount = 0;
+    let contactCount = 0;
     try {
         productCount = readProducts().length;
     } catch (_) {
         productCount = -1;
+    }
+    try {
+        contactCount = readContacts().length;
+    } catch (_) {
+        contactCount = -1;
     }
     res.json({
         ok: true,
         admin: '/admin',
         persist: PERSIST_DIR,
         productCount,
+        contactCount,
         deployCheck: 'disk-persist-v1'
     });
 });
