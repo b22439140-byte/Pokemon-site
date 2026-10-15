@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Afrekenen — PokeVault</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="style.css?v=2">
+</head>
+<body>
+
+    <div class="top-bar">
+        <div class="top-bar-left">
+            <span>3-5 dagen levertijd</span>
+            <span>Gratis verzending vanaf €100</span>
+            <span>Beoordeeld met 9,4/10 op Trustpilot</span>
+        </div>
+        <div class="top-bar-right">
+            <a href="contact.html">Klantenservice</a>
+            <a href="#">NL | EN</a>
+        </div>
+    </div>
+
+    <header class="main-header">
+        <div class="logo">
+            <a href="index.html">
+                <h1><span class="logo-mark" aria-hidden="true"></span>Poke<span>Vault</span></h1>
+            </a>
+        </div>
+
+        <form class="search-container" action="aanbod.html" role="search">
+            <input type="search" name="q" placeholder="Zoek kaarten, boxes, accessoires…">
+            <button type="submit">Zoeken</button>
+        </form>
+
+        <div class="user-actions">
+            <a href="#" class="action-link cart-link">
+                <span class="action-icon" aria-hidden="true">🛒</span>
+                <span id="cart-total">€0,00</span>
+                <span class="cart-count-badge" id="cart-count">0</span>
+            </a>
+        </div>
+    </header>
+
+    <nav class="category-nav" aria-label="Productcategorieën">
+        <ul>
+            <li><a href="aanbod.html?category=pokemon">Pokémon</a></li>
+            <li><a href="aanbod.html?category=boxen">Boxen</a></li>
+            <li><a href="aanbod.html?category=boosters">Boosters</a></li>
+            <li><a href="aanbod.html?category=tins">Tins</a></li>
+            <li><a href="aanbod.html?category=blisters">Blisters</a></li>
+            <li><a href="aanbod.html?category=losse-kaarten">Losse Kaarten</a></li>
+            <li><a href="aanbod.html?category=accessoires">Accessoires</a></li>
+            <li><a href="aanbod.html?category=lego">LEGO</a></li>
+            <li><a href="aanbod.html?category=sale" class="nav-sale">Sale</a></li>
+        </ul>
+    </nav>
+
+    <section class="page-hero">
+        <h1>Afrekenen</h1>
+        <p>Vul je gegevens in. Je betaalt veilig via bunq.me met iDEAL, Bancontact, kaart of Apple/Google Pay.</p>
+    </section>
+
+    <main class="page-main">
+        <div class="checkout-empty" id="checkout-empty" hidden>
+            <p>Je winkelwagen is leeg.</p>
+            <a href="aanbod.html" class="btn-submit checkout-empty-link">Bekijk ons aanbod</a>
+        </div>
+
+        <div class="checkout-grid" id="checkout-grid">
+            <form class="contact-form checkout-form" id="checkout-form">
+                <h2>Verzendgegevens</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="name">Naam</label>
+                        <input type="text" id="name" name="name" required maxlength="120" placeholder="Je volledige naam" autocomplete="name">
+                    </div>
+                    <div class="form-group">
+                        <label for="email">E-mailadres</label>
+                        <input type="email" id="email" name="email" required maxlength="200" placeholder="naam@voorbeeld.nl" autocomplete="email">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="phone">Telefoonnummer (optioneel)</label>
+                    <input type="tel" id="phone" name="phone" maxlength="40" placeholder="06 12345678" autocomplete="tel">
+                </div>
+                <div class="form-group">
+                    <label for="street">Adres</label>
+                    <input type="text" id="street" name="street" required maxlength="200" placeholder="Straat en huisnummer" autocomplete="street-address">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="postalCode">Postcode</label>
+                        <input type="text" id="postalCode" name="postalCode" required maxlength="20" placeholder="1234 AB" autocomplete="postal-code">
+                    </div>
+                    <div class="form-group">
+                        <label for="city">Plaats</label>
+                        <input type="text" id="city" name="city" required maxlength="100" placeholder="Plaats" autocomplete="address-level2">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="country">Land</label>
+                    <select id="country" name="country" required autocomplete="country">
+                        <option value="NL" selected>Nederland</option>
+                        <option value="BE">België</option>
+                        <option value="DE">Duitsland</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-submit" id="checkout-submit">Doorgaan naar betalen</button>
+                <p class="form-error" id="checkout-error" role="alert"></p>
+            </form>
+
+            <aside class="checkout-summary" aria-label="Besteloverzicht">
+                <h2>Overzicht</h2>
+                <div id="checkout-items"></div>
+                <div class="checkout-totals">
+                    <div class="checkout-total-row">
+                        <span>Subtotaal</span>
+                        <strong id="checkout-subtotal">€0,00</strong>
+                    </div>
+                    <div class="checkout-total-row">
+                        <span>Verzending</span>
+                        <strong id="checkout-shipping">€0,00</strong>
+                    </div>
+                    <div class="checkout-total-row checkout-total-row-final">
+                        <span>Totaal</span>
+                        <strong id="checkout-total">€0,00</strong>
+                    </div>
+                </div>
+                <p class="checkout-note">Gratis verzending vanaf €100. Na bevestigen open je de beveiligde bunq.me betaalpagina.</p>
+            </aside>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="footer-grid">
+            <div class="footer-col">
+                <div class="footer-brand">Poke<span>Vault</span></div>
+                <p>Een webshop van collectors, voor collectors. Sealed Pokémon, singles en tafel-TCG's — eerlijke conditie en snelle verzending vanuit Nederland.</p>
+            </div>
+            <div class="footer-col">
+                <h4>Klantenservice</h4>
+                <ul>
+                    <li><a href="contact.html">Contact</a></li>
+                    <li><a href="#">Verzending &amp; retourneren</a></li>
+                    <li><a href="veelgestelde-vragen.html">Veelgestelde vragen</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>Informatie</h4>
+                <ul>
+                    <li><a href="over.html">Over PokeVault</a></li>
+                    <li><a href="voorwaarden-privacy.html">Algemene voorwaarden</a></li>
+                    <li><a href="voorwaarden-privacy.html#privacy">Privacybeleid</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>Betaalmethoden</h4>
+                <div class="footer-payments" aria-label="Geaccepteerde betaalmethoden">
+                    <img src="assets/payments/ideal.svg" alt="iDEAL" width="48" height="32">
+                    <img src="assets/payments/bancontact.svg" alt="Bancontact" width="72" height="32">
+                    <img src="assets/payments/visa.svg" alt="Visa" width="48" height="32">
+                    <img src="assets/payments/mastercard.svg" alt="Mastercard" width="48" height="32">
+                    <img src="assets/payments/apple-pay.svg" alt="Apple Pay" width="56" height="32">
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 PokeVault. Spoelsterstraat 41, Haaksbergen. KvK: 08185063</p>
+        </div>
+    </footer>
+
+    <script src="js/cart.js"></script>
+    <script src="js/checkout.js"></script>
+</body>
+</html>

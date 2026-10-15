@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Bestelling — PokeVault</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="style.css?v=2">
+</head>
+<body>
+
+    <div class="top-bar">
+        <div class="top-bar-left">
+            <span>3-5 dagen levertijd</span>
+            <span>Gratis verzending vanaf €100</span>
+            <span>Beoordeeld met 9,4/10 op Trustpilot</span>
+        </div>
+        <div class="top-bar-right">
+            <a href="contact.html">Klantenservice</a>
+            <a href="#">NL | EN</a>
+        </div>
+    </div>
+
+    <header class="main-header">
+        <div class="logo">
+            <a href="index.html">
+                <h1><span class="logo-mark" aria-hidden="true"></span>Poke<span>Vault</span></h1>
+            </a>
+        </div>
+
+        <form class="search-container" action="aanbod.html" role="search">
+            <input type="search" name="q" placeholder="Zoek kaarten, boxes, accessoires…">
+            <button type="submit">Zoeken</button>
+        </form>
+
+        <div class="user-actions">
+            <a href="#" class="action-link cart-link">
+                <span class="action-icon" aria-hidden="true">🛒</span>
+                <span id="cart-total">€0,00</span>
+                <span class="cart-count-badge" id="cart-count">0</span>
+            </a>
+        </div>
+    </header>
+
+    <nav class="category-nav" aria-label="Productcategorieën">
+        <ul>
+            <li><a href="aanbod.html?category=pokemon">Pokémon</a></li>
+            <li><a href="aanbod.html?category=boxen">Boxen</a></li>
+            <li><a href="aanbod.html?category=boosters">Boosters</a></li>
+            <li><a href="aanbod.html?category=tins">Tins</a></li>
+            <li><a href="aanbod.html?category=blisters">Blisters</a></li>
+            <li><a href="aanbod.html?category=losse-kaarten">Losse Kaarten</a></li>
+            <li><a href="aanbod.html?category=accessoires">Accessoires</a></li>
+            <li><a href="aanbod.html?category=lego">LEGO</a></li>
+            <li><a href="aanbod.html?category=sale" class="nav-sale">Sale</a></li>
+        </ul>
+    </nav>
+
+    <section class="page-hero">
+        <h1>Bestelling</h1>
+        <p id="order-hero-text">We controleren je betaling…</p>
+    </section>
+
+    <main class="page-main">
+        <div class="order-status-card" id="order-status-card">
+            <p class="order-status-label" id="order-status-label">Bezig met controleren</p>
+            <p class="order-status-detail" id="order-status-detail">Even geduld — dit kan een paar seconden duren.</p>
+            <div class="order-meta" id="order-meta" hidden></div>
+            <div class="order-actions" id="order-actions"></div>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="footer-grid">
+            <div class="footer-col">
+                <div class="footer-brand">Poke<span>Vault</span></div>
+                <p>Een webshop van collectors, voor collectors. Sealed Pokémon, singles en tafel-TCG's — eerlijke conditie en snelle verzending vanuit Nederland.</p>
+            </div>
+            <div class="footer-col">
+                <h4>Klantenservice</h4>
+                <ul>
+                    <li><a href="contact.html">Contact</a></li>
+                    <li><a href="veelgestelde-vragen.html">Veelgestelde vragen</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>Informatie</h4>
+                <ul>
+                    <li><a href="over.html">Over PokeVault</a></li>
+                    <li><a href="voorwaarden-privacy.html">Algemene voorwaarden</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>Betaalmethoden</h4>
+                <div class="footer-payments" aria-label="Geaccepteerde betaalmethoden">
+                    <img src="assets/payments/ideal.svg" alt="iDEAL" width="48" height="32">
+                    <img src="assets/payments/bancontact.svg" alt="Bancontact" width="72" height="32">
+                    <img src="assets/payments/visa.svg" alt="Visa" width="48" height="32">
+                    <img src="assets/payments/mastercard.svg" alt="Mastercard" width="48" height="32">
+                    <img src="assets/payments/apple-pay.svg" alt="Apple Pay" width="56" height="32">
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 PokeVault. Spoelsterstraat 41, Haaksbergen. KvK: 08185063</p>
+        </div>
+    </footer>
+
+    <script src="js/cart.js"></script>
+    <script src="js/bestelling.js"></script>
+</body>
+</html>

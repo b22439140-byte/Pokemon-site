@@ -3,11 +3,18 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+const { createBunqClient } = require('./lib/bunq');
 
 const PORT = process.env.PORT || 3000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'pokevault';
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
 const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash';
+const BUNQ_API_KEY = process.env.BUNQ_API_KEY || '';
+const BUNQ_SANDBOX = /^(1|true|yes)$/i.test(String(process.env.BUNQ_SANDBOX || ''));
+const BUNQ_MONETARY_ACCOUNT_ID = process.env.BUNQ_MONETARY_ACCOUNT_ID || '';
+const PUBLIC_BASE_URL = String(process.env.PUBLIC_BASE_URL || '').replace(/\/$/, '');
+const SHIPPING_FEE = 6.95;
+const FREE_SHIPPING_FROM = 100;
 const SEED_FILE = path.join(__dirname, 'data', 'products.json');
 
 function resolvePersistDir() {
@@ -31,7 +38,24 @@ function resolvePersistDir() {
 const PERSIST_DIR = resolvePersistDir();
 const DATA_FILE = path.join(PERSIST_DIR, 'products.json');
 const CONTACTS_FILE = path.join(PERSIST_DIR, 'contacts.json');
+const ORDERS_FILE = path.join(PERSIST_DIR, 'orders.json');
 const UPLOADS_DIR = path.join(PERSIST_DIR, 'uploads');
+
+let bunqClient = null;
+function getBunqClient() {
+    if (!BUNQ_API_KEY) {
+        throw new Error('Betalingen zijn niet geconfigureerd (BUNQ_API_KEY ontbreekt).');
+    }
+    if (!bunqClient) {
+        bunqClient = createBunqClient({
+            apiKey: BUNQ_API_KEY,
+            persistDir: PERSIST_DIR,
+            sandbox: BUNQ_SANDBOX,
+            monetaryAccountId: BUNQ_MONETARY_ACCOUNT_ID || null
+        });
+    }
+    return bunqClient;
+}
 
 if (!fs.existsSync(DATA_FILE)) {
     const seed = fs.existsSync(SEED_FILE)
@@ -42,6 +66,10 @@ if (!fs.existsSync(DATA_FILE)) {
 
 if (!fs.existsSync(CONTACTS_FILE)) {
     fs.writeFileSync(CONTACTS_FILE, '[]');
+}
+
+if (!fs.existsSync(ORDERS_FILE)) {
+    fs.writeFileSync(ORDERS_FILE, '[]');
 }
 
 // Remove built-in demo products once; keep anything added via admin.
@@ -172,6 +200,62 @@ function readContacts() {
 
 function writeContacts(contacts) {
     fs.writeFileSync(CONTACTS_FILE, JSON.stringify(contacts, null, 2));
+}
+
+function readOrders() {
+    try {
+        const orders = JSON.parse(fs.readFileSync(ORDERS_FILE, 'utf8'));
+        return Array.isArray(orders) ? orders : [];
+    } catch {
+        return [];
+    }
+}
+
+function writeOrders(orders) {
+    fs.writeFileSync(ORDERS_FILE, JSON.stringify(orders, null, 2));
+}
+
+function formatMoney(amount) {
+    return Number(amount).toFixed(2);
+}
+
+function publicOrderView(order) {
+    return {
+        id: order.id,
+        status: order.status,
+        createdAt: order.createdAt,
+        paidAt: order.paidAt || null,
+        customer: {
+            name: order.customer?.name || null,
+            email: order.customer?.email || null
+        },
+        items: order.items,
+        subtotal: order.subtotal,
+        shipping: order.shipping,
+        total: order.total,
+        paymentUrl: order.paymentUrl || null,
+        currency: 'EUR'
+    };
+}
+
+async function refreshOrderPaymentStatus(order) {
+    if (!order || order.status === 'paid' || !order.bunqMeTabId) {
+        return order;
+    }
+
+    const bunq = getBunqClient();
+    const tab = await bunq.getBunqMeTab(order.bunqMeTabId);
+    order.bunqStatus = tab.status;
+    if (tab.shareUrl) order.paymentUrl = tab.shareUrl;
+
+    if (bunq.isTabPaid(tab)) {
+        order.status = 'paid';
+        order.paidAt = order.paidAt || new Date().toISOString();
+    } else if (tab.status === 'CANCELLED' || tab.status === 'EXPIRED') {
+        order.status = order.status === 'paid' ? 'paid' : String(tab.status).toLowerCase();
+    }
+
+    return order;
 }
 
 function resolveUploadFile(imageUrl) {
@@ -584,6 +668,162 @@ app.post('/api/contact', (req, res) => {
     }
 });
 
+app.post('/api/checkout', async (req, res) => {
+    try {
+        if (!BUNQ_API_KEY) {
+            return res.status(503).json({ error: 'Betalingen zijn nog niet geconfigureerd.' });
+        }
+
+        const baseUrl = PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
+        const itemsInput = Array.isArray(req.body?.items) ? req.body.items : [];
+        if (!itemsInput.length) {
+            return res.status(400).json({ error: 'Je winkelwagen is leeg.' });
+        }
+
+        const customer = req.body?.customer || {};
+        const name = String(customer.name || '').trim();
+        const email = String(customer.email || '').trim();
+        const phone = String(customer.phone || '').trim();
+        const address = {
+            line1: String(customer.address?.line1 || customer.street || '').trim(),
+            line2: String(customer.address?.line2 || '').trim(),
+            postalCode: String(customer.address?.postalCode || customer.postalCode || '').trim(),
+            city: String(customer.address?.city || customer.city || '').trim(),
+            country: String(customer.address?.country || customer.country || 'NL').trim() || 'NL'
+        };
+
+        if (!name || name.length > 120) {
+            return res.status(400).json({ error: 'Vul een geldige naam in.' });
+        }
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 200) {
+            return res.status(400).json({ error: 'Vul een geldig e-mailadres in.' });
+        }
+        if (phone && phone.length > 40) {
+            return res.status(400).json({ error: 'Telefoonnummer is te lang.' });
+        }
+        if (!address.line1 || address.line1.length > 200) {
+            return res.status(400).json({ error: 'Vul een geldig adres in.' });
+        }
+        if (!address.postalCode || address.postalCode.length > 20) {
+            return res.status(400).json({ error: 'Vul een geldige postcode in.' });
+        }
+        if (!address.city || address.city.length > 100) {
+            return res.status(400).json({ error: 'Vul een geldige plaats in.' });
+        }
+
+        const products = readProducts();
+        const byId = new Map(products.map((p) => [p.id, p]));
+        const lineItems = [];
+
+        for (const raw of itemsInput) {
+            const productId = String(raw?.productId || raw?.id || '').trim();
+            const qty = Math.max(1, Math.min(99, parseInt(raw?.qty || raw?.quantity || 1, 10) || 1));
+            const product = byId.get(productId);
+            if (!product) {
+                return res.status(400).json({ error: `Product niet gevonden: ${productId || '?'}` });
+            }
+            if (product.purchaseMode === 'contact') {
+                return res.status(400).json({
+                    error: `"${product.title}" kan niet via de winkelwagen besteld worden.`
+                });
+            }
+            const price = Number(product.price);
+            if (!Number.isFinite(price) || price < 0) {
+                return res.status(400).json({ error: `Ongeldige prijs voor ${product.title}.` });
+            }
+            lineItems.push({
+                productId: product.id,
+                title: product.title,
+                image: product.image || productImages(product)[0] || null,
+                price,
+                quantity: qty,
+                lineTotal: Number(formatMoney(price * qty))
+            });
+        }
+
+        const subtotal = Number(formatMoney(lineItems.reduce((sum, item) => sum + item.lineTotal, 0)));
+        const shipping = subtotal >= FREE_SHIPPING_FROM ? 0 : SHIPPING_FEE;
+        const total = Number(formatMoney(subtotal + shipping));
+        if (total <= 0) {
+            return res.status(400).json({ error: 'Totaalbedrag moet groter dan €0 zijn.' });
+        }
+
+        const orderId = crypto.randomBytes(12).toString('hex');
+        const redirectUrl = `${baseUrl}/bestelling.html?order=${encodeURIComponent(orderId)}`;
+        const description = `PokeVault #${orderId.slice(0, 8)}`;
+
+        const bunq = getBunqClient();
+        const tab = await bunq.createBunqMeTab({
+            amount: total,
+            description,
+            redirectUrl
+        });
+
+        if (!tab.shareUrl) {
+            return res.status(502).json({ error: 'bunq gaf geen betaallink terug.' });
+        }
+
+        const order = {
+            id: orderId,
+            createdAt: new Date().toISOString(),
+            status: 'pending',
+            paidAt: null,
+            customer: { name, email, phone: phone || null, address },
+            items: lineItems,
+            subtotal,
+            shipping,
+            total,
+            bunqMeTabId: tab.id,
+            bunqStatus: tab.status,
+            paymentUrl: tab.shareUrl,
+            description
+        };
+
+        const orders = readOrders();
+        orders.unshift(order);
+        writeOrders(orders);
+
+        res.status(201).json({
+            orderId: order.id,
+            paymentUrl: order.paymentUrl,
+            total: order.total,
+            status: order.status
+        });
+    } catch (err) {
+        console.error('Checkout fout:', err.message || err);
+        res.status(502).json({ error: err.message || 'Kon betaling niet starten.' });
+    }
+});
+
+app.get('/api/orders/:id', async (req, res) => {
+    try {
+        const orders = readOrders();
+        const index = orders.findIndex((o) => o.id === req.params.id);
+        if (index === -1) {
+            return res.status(404).json({ error: 'Bestelling niet gevonden.' });
+        }
+
+        let order = orders[index];
+        if (order.status === 'pending' && order.bunqMeTabId && BUNQ_API_KEY) {
+            try {
+                order = await refreshOrderPaymentStatus(order);
+                orders[index] = order;
+                writeOrders(orders);
+            } catch (err) {
+                console.warn('bunq status check mislukt:', err.message || err);
+            }
+        }
+
+        res.json(publicOrderView(order));
+    } catch (err) {
+        res.status(500).json({ error: err.message || 'Kon bestelling niet laden.' });
+    }
+});
+
+app.get('/api/admin/orders', requireAdmin, (_req, res) => {
+    res.json(readOrders());
+});
+
 app.get('/api/admin/contacts', requireAdmin, (_req, res) => {
     res.json(readContacts());
 });
@@ -615,6 +855,7 @@ app.delete('/api/admin/contacts/:id', requireAdmin, (req, res) => {
 app.get('/api/health', (_req, res) => {
     let productCount = 0;
     let contactCount = 0;
+    let orderCount = 0;
     try {
         productCount = readProducts().length;
     } catch (_) {
@@ -625,12 +866,20 @@ app.get('/api/health', (_req, res) => {
     } catch (_) {
         contactCount = -1;
     }
+    try {
+        orderCount = readOrders().length;
+    } catch (_) {
+        orderCount = -1;
+    }
     res.json({
         ok: true,
         admin: '/admin',
         persist: PERSIST_DIR,
         productCount,
         contactCount,
+        orderCount,
+        bunqConfigured: Boolean(BUNQ_API_KEY),
+        bunqSandbox: BUNQ_SANDBOX,
         deployCheck: 'disk-persist-v1'
     });
 });
@@ -679,5 +928,10 @@ app.listen(PORT, () => {
         console.log(`AI scan: aan (model ${OPENROUTER_MODEL})`);
     } else {
         console.log('AI scan: uit — stel OPENROUTER_API_KEY in om kaarten te herkennen');
+    }
+    if (BUNQ_API_KEY) {
+        console.log(`bunq checkout: aan (${BUNQ_SANDBOX ? 'sandbox' : 'production'})`);
+    } else {
+        console.log('bunq checkout: uit — stel BUNQ_API_KEY in om betalingen te activeren');
     }
 });

@@ -83,6 +83,11 @@ const Cart = {
 
         const subtotalEl = document.getElementById('cart-subtotal');
         if (subtotalEl) subtotalEl.textContent = formatEuro(this.getTotalPrice());
+
+        const checkoutBtn = document.getElementById('cart-checkout');
+        if (checkoutBtn) {
+            checkoutBtn.disabled = this.items.length === 0;
+        }
     },
 
     open() {
@@ -148,7 +153,7 @@ function injectCartDrawer() {
                     <strong id="cart-subtotal">€0,00</strong>
                 </div>
                 <p class="cart-shipping-note">Gratis verzending vanaf €100</p>
-                <button type="button" class="btn-checkout">Afrekenen</button>
+                <button type="button" class="btn-checkout" id="cart-checkout">Afrekenen</button>
                 <button type="button" class="btn-continue" id="cart-continue">Verder winkelen</button>
             </div>
         </aside>
@@ -167,6 +172,15 @@ function initCart() {
     document.getElementById('cart-overlay').addEventListener('click', () => Cart.close());
     document.getElementById('cart-close').addEventListener('click', () => Cart.close());
     document.getElementById('cart-continue').addEventListener('click', () => Cart.close());
+
+    const checkoutBtn = document.getElementById('cart-checkout');
+    if (checkoutBtn) {
+        checkoutBtn.addEventListener('click', () => {
+            Cart.load();
+            if (!Cart.items.length) return;
+            window.location.href = 'checkout.html';
+        });
+    }
 
     document.querySelectorAll('.cart-link').forEach(link => {
         link.addEventListener('click', (e) => {

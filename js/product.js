@@ -136,7 +136,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <div class="product-trust-card">
                         <span class="trust-card-icon">🔒</span>
                         <strong>Veilig betalen</strong>
-                        <span>iDEAL, PayPal &amp; creditcard</span>
+                        <span>iDEAL &amp; bunq.me</span>
                     </div>
                     <div class="product-trust-card">
                         <span class="trust-card-icon">📦</span>
@@ -157,11 +157,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 <div class="payment-badges">
                     <span>iDEAL</span>
-                    <span>PayPal</span>
+                    <span>Bancontact</span>
                     <span>Visa</span>
                     <span>Mastercard</span>
-                    <span>Bancontact</span>
                     <span>Apple Pay</span>
+                    <span>bunq.me</span>
                 </div>
             </div>
         </div>

@@ -17,6 +17,14 @@ services:
         sync: false
       - key: OPENROUTER_MODEL
         value: google/gemini-2.5-flash
+      - key: BUNQ_API_KEY
+        sync: false
+      - key: BUNQ_SANDBOX
+        value: "false"
+      - key: PUBLIC_BASE_URL
+        sync: false
+      - key: BUNQ_MONETARY_ACCOUNT_ID
+        sync: false
     disk:
       name: pokevault-data
       mountPath: /var/data
