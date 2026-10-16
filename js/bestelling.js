@@ -6,6 +6,14 @@
         return '€' + Number(amount).toFixed(2).replace('.', ',');
     }
 
+    function escapeHtml(value) {
+        return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
     function orderIdFromUrl() {
         return new URLSearchParams(window.location.search).get('order') || '';
     }
@@ -52,7 +60,7 @@
             detail: 'Bedankt! We gaan je bestelling zo snel mogelijk verzenden.',
             hero: 'Je bestelling is betaald.',
             metaHtml: `
-                <p><strong>Bestelnummer:</strong> ${order.id}</p>
+                <p><strong>Bestelnummer:</strong> ${escapeHtml(order.id)}</p>
                 <p><strong>Totaal:</strong> ${formatEuro(order.total)}</p>
             `,
             actionsHtml: `
@@ -62,9 +70,40 @@
         });
     }
 
+    function renderCryptoPending(order) {
+        const address = order.crypto?.address;
+        const network = order.crypto?.network || 'BTC / ETH / USDT';
+        const walletBlock = address
+            ? `<p><strong>Netwerk:</strong> ${escapeHtml(network)}</p>
+               <p><strong>Wallet:</strong> <code class="crypto-wallet">${escapeHtml(address)}</code></p>
+               <p>Stuur het exacte bedrag van <strong>${formatEuro(order.total)}</strong> en vermeld je bestelnummer in de memo/notitie indien mogelijk.</p>`
+            : `<p>We sturen de crypto-betaalinstructies (BTC, ETH of USDT) naar <strong>${escapeHtml(order.customer?.email || 'je e-mailadres')}</strong>. Vermeld bij vragen altijd je bestelnummer.</p>`;
+
+        setStatus({
+            label: 'Wachten op crypto-betaling',
+            detail: 'Je bestelling is geplaatst. Rond de betaling af met crypto — daarna verzenden we zo snel mogelijk.',
+            hero: 'Betaal met crypto om af te ronden.',
+            metaHtml: `
+                <p><strong>Bestelnummer:</strong> ${escapeHtml(order.id)}</p>
+                <p><strong>Totaal:</strong> ${formatEuro(order.total)}</p>
+                <p><strong>Betaalmethode:</strong> Crypto (${escapeHtml(network)})</p>
+                ${walletBlock}
+            `,
+            actionsHtml: `
+                <a class="btn-submit checkout-empty-link" href="contact.html?order=${encodeURIComponent(order.id)}">Contact over betaling</a>
+                <a class="order-secondary-link" href="aanbod.html">Verder winkelen</a>
+            `
+        });
+    }
+
     function renderPending(order, attempts) {
+        if (order.paymentMethod === 'crypto') {
+            renderCryptoPending(order);
+            return;
+        }
+
         const payLink = order.paymentUrl
-            ? `<a class="btn-submit checkout-empty-link" href="${order.paymentUrl}">Opnieuw openen in bunq.me</a>`
+            ? `<a class="btn-submit checkout-empty-link" href="${escapeHtml(order.paymentUrl)}">Opnieuw openen in bunq.me</a>`
             : '';
 
         setStatus({
@@ -74,7 +113,7 @@
                 : 'Rond je betaling af op bunq.me. Deze pagina werkt automatisch bij.',
             hero: 'Nog even je betaling afronden…',
             metaHtml: `
-                <p><strong>Bestelnummer:</strong> ${order.id}</p>
+                <p><strong>Bestelnummer:</strong> ${escapeHtml(order.id)}</p>
                 <p><strong>Totaal:</strong> ${formatEuro(order.total)}</p>
             `,
             actionsHtml: `
@@ -96,6 +135,10 @@
                     return;
                 }
                 renderPending(lastOrder, attempts);
+                // Crypto payments are confirmed manually — no need to keep polling.
+                if (lastOrder.paymentMethod === 'crypto') {
+                    return;
+                }
             } catch (err) {
                 setStatus({
                     label: 'Bestelling niet gevonden',

@@ -8,14 +8,14 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="style.css?v=2">
+    <link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
 
     <div class="top-bar">
         <div class="top-bar-left">
             <span>3-5 dagen levertijd</span>
-            <span>Gratis verzending vanaf €100</span>
+            <span>Wereldwijde verzending · gratis vanaf €100</span>
             <span>Beoordeeld met 9,4/10 op Trustpilot</span>
         </div>
         <div class="top-bar-right">
@@ -61,7 +61,7 @@
 
     <section class="page-hero">
         <h1>Afrekenen</h1>
-        <p>Vul je gegevens in. Je betaalt veilig via bunq.me met iDEAL, Bancontact, kaart of Apple/Google Pay.</p>
+        <p>Vul je gegevens in. We verzenden wereldwijd. Betaal veilig via bunq.me of met crypto.</p>
     </section>
 
     <main class="page-main">
@@ -107,8 +107,45 @@
                         <option value="NL" selected>Nederland</option>
                         <option value="BE">België</option>
                         <option value="DE">Duitsland</option>
+                        <option value="AT">Oostenrijk</option>
+                        <option value="FR">Frankrijk</option>
+                        <option value="LU">Luxemburg</option>
+                        <option value="GB">Verenigd Koninkrijk</option>
+                        <option value="IE">Ierland</option>
+                        <option value="IT">Italië</option>
+                        <option value="ES">Spanje</option>
+                        <option value="PT">Portugal</option>
+                        <option value="PL">Polen</option>
+                        <option value="SE">Zweden</option>
+                        <option value="NO">Noorwegen</option>
+                        <option value="DK">Denemarken</option>
+                        <option value="FI">Finland</option>
+                        <option value="CH">Zwitserland</option>
+                        <option value="US">Verenigde Staten</option>
+                        <option value="CA">Canada</option>
+                        <option value="AU">Australië</option>
+                        <option value="JP">Japan</option>
+                        <option value="SG">Singapore</option>
+                        <option value="OTHER">Ander land</option>
                     </select>
                 </div>
+                <fieldset class="payment-methods">
+                    <legend>Betaalmethode</legend>
+                    <label class="payment-option">
+                        <input type="radio" name="paymentMethod" value="bunq" checked>
+                        <span class="payment-option-text">
+                            <strong>iDEAL / Bancontact / kaart</strong>
+                            <small>Veilig via bunq.me · ook Apple Pay &amp; Google Pay</small>
+                        </span>
+                    </label>
+                    <label class="payment-option">
+                        <input type="radio" name="paymentMethod" value="crypto">
+                        <span class="payment-option-text">
+                            <strong>Crypto</strong>
+                            <small>BTC, ETH of USDT — instructies na bestelling</small>
+                        </span>
+                    </label>
+                </fieldset>
                 <button type="submit" class="btn-submit" id="checkout-submit">Doorgaan naar betalen</button>
                 <p class="form-error" id="checkout-error" role="alert"></p>
             </form>
@@ -130,7 +167,7 @@
                         <strong id="checkout-total">€0,00</strong>
                     </div>
                 </div>
-                <p class="checkout-note">Gratis verzending vanaf €100. Na bevestigen open je de beveiligde bunq.me betaalpagina.</p>
+                <p class="checkout-note" id="checkout-note">Gratis verzending vanaf €100 (NL/BE). Wereldwijde verzending beschikbaar. Na bevestigen rond je de betaling af.</p>
             </aside>
         </div>
     </main>
@@ -165,6 +202,7 @@
                     <img src="assets/payments/visa.svg" alt="Visa" width="48" height="32">
                     <img src="assets/payments/mastercard.svg" alt="Mastercard" width="48" height="32">
                     <img src="assets/payments/apple-pay.svg" alt="Apple Pay" width="56" height="32">
+                    <img src="assets/payments/crypto.svg" alt="Crypto" width="56" height="32">
                 </div>
             </div>
         </div>

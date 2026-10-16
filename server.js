@@ -13,8 +13,25 @@ const BUNQ_API_KEY = String(process.env.BUNQ_API_KEY || '').trim();
 const BUNQ_SANDBOX = /^(1|true|yes)$/i.test(String(process.env.BUNQ_SANDBOX || '').trim());
 const BUNQ_MONETARY_ACCOUNT_ID = String(process.env.BUNQ_MONETARY_ACCOUNT_ID || '').trim();
 const PUBLIC_BASE_URL = String(process.env.PUBLIC_BASE_URL || '').trim().replace(/\/$/, '');
-const SHIPPING_FEE = 6.95;
-const FREE_SHIPPING_FROM = 100;
+const SHIPPING_FEE_DOMESTIC = 6.95;
+const SHIPPING_FEE_INTERNATIONAL = 14.95;
+const FREE_SHIPPING_FROM_DOMESTIC = 100;
+const FREE_SHIPPING_FROM_INTERNATIONAL = 150;
+const DOMESTIC_COUNTRIES = new Set(['NL', 'BE']);
+const ALLOWED_COUNTRIES = new Set([
+    'NL', 'BE', 'DE', 'AT', 'FR', 'LU', 'GB', 'IE', 'IT', 'ES', 'PT', 'PL',
+    'SE', 'NO', 'DK', 'FI', 'CH', 'US', 'CA', 'AU', 'JP', 'SG', 'OTHER'
+]);
+const CRYPTO_WALLET_ADDRESS = String(process.env.CRYPTO_WALLET_ADDRESS || '').trim();
+const CRYPTO_WALLET_NETWORK = String(process.env.CRYPTO_WALLET_NETWORK || 'BTC / ETH / USDT').trim();
+
+function shippingFor(subtotal, countryCode) {
+    const country = String(countryCode || 'NL').toUpperCase();
+    if (DOMESTIC_COUNTRIES.has(country)) {
+        return subtotal >= FREE_SHIPPING_FROM_DOMESTIC ? 0 : SHIPPING_FEE_DOMESTIC;
+    }
+    return subtotal >= FREE_SHIPPING_FROM_INTERNATIONAL ? 0 : SHIPPING_FEE_INTERNATIONAL;
+}
 const SEED_FILE = path.join(__dirname, 'data', 'products.json');
 
 function resolvePersistDir() {
@@ -220,6 +237,7 @@ function formatMoney(amount) {
 }
 
 function publicOrderView(order) {
+    const paymentMethod = order.paymentMethod === 'crypto' ? 'crypto' : 'bunq';
     return {
         id: order.id,
         status: order.status,
@@ -234,6 +252,13 @@ function publicOrderView(order) {
         shipping: order.shipping,
         total: order.total,
         paymentUrl: order.paymentUrl || null,
+        paymentMethod,
+        crypto: paymentMethod === 'crypto'
+            ? {
+                network: CRYPTO_WALLET_NETWORK,
+                address: CRYPTO_WALLET_ADDRESS || null
+            }
+            : null,
         currency: 'EUR'
     };
 }
@@ -670,7 +695,11 @@ app.post('/api/contact', (req, res) => {
 
 app.post('/api/checkout', async (req, res) => {
     try {
-        if (!BUNQ_API_KEY) {
+        const paymentMethod = String(req.body?.paymentMethod || 'bunq').trim().toLowerCase() === 'crypto'
+            ? 'crypto'
+            : 'bunq';
+
+        if (paymentMethod === 'bunq' && !BUNQ_API_KEY) {
             return res.status(503).json({ error: 'Betalingen zijn nog niet geconfigureerd.' });
         }
 
@@ -684,12 +713,15 @@ app.post('/api/checkout', async (req, res) => {
         const name = String(customer.name || '').trim();
         const email = String(customer.email || '').trim();
         const phone = String(customer.phone || '').trim();
+        const country = String(customer.address?.country || customer.country || 'NL')
+            .trim()
+            .toUpperCase() || 'NL';
         const address = {
             line1: String(customer.address?.line1 || customer.street || '').trim(),
             line2: String(customer.address?.line2 || '').trim(),
             postalCode: String(customer.address?.postalCode || customer.postalCode || '').trim(),
             city: String(customer.address?.city || customer.city || '').trim(),
-            country: String(customer.address?.country || customer.country || 'NL').trim() || 'NL'
+            country: ALLOWED_COUNTRIES.has(country) ? country : 'OTHER'
         };
 
         if (!name || name.length > 120) {
@@ -742,42 +774,49 @@ app.post('/api/checkout', async (req, res) => {
         }
 
         const subtotal = Number(formatMoney(lineItems.reduce((sum, item) => sum + item.lineTotal, 0)));
-        const shipping = subtotal >= FREE_SHIPPING_FROM ? 0 : SHIPPING_FEE;
+        const shipping = Number(formatMoney(shippingFor(subtotal, address.country)));
         const total = Number(formatMoney(subtotal + shipping));
         if (total <= 0) {
             return res.status(400).json({ error: 'Totaalbedrag moet groter dan €0 zijn.' });
         }
 
         const orderId = crypto.randomBytes(12).toString('hex');
-        const redirectUrl = `${baseUrl}/bestelling.html?order=${encodeURIComponent(orderId)}`;
+        const orderUrl = `${baseUrl}/bestelling.html?order=${encodeURIComponent(orderId)}`;
         const description = `PokeVault #${orderId.slice(0, 8)}`;
 
-        const bunq = getBunqClient();
-        const tab = await bunq.createBunqMeTab({
-            amount: total,
-            description,
-            redirectUrl
-        });
-
-        if (!tab.shareUrl) {
-            return res.status(502).json({ error: 'bunq gaf geen betaallink terug.' });
-        }
-
-        const order = {
+        let order = {
             id: orderId,
             createdAt: new Date().toISOString(),
             status: 'pending',
             paidAt: null,
+            paymentMethod,
             customer: { name, email, phone: phone || null, address },
             items: lineItems,
             subtotal,
             shipping,
             total,
-            bunqMeTabId: tab.id,
-            bunqStatus: tab.status,
-            paymentUrl: tab.shareUrl,
+            bunqMeTabId: null,
+            bunqStatus: null,
+            paymentUrl: null,
             description
         };
+
+        if (paymentMethod === 'bunq') {
+            const bunq = getBunqClient();
+            const tab = await bunq.createBunqMeTab({
+                amount: total,
+                description,
+                redirectUrl: orderUrl
+            });
+
+            if (!tab.shareUrl) {
+                return res.status(502).json({ error: 'bunq gaf geen betaallink terug.' });
+            }
+
+            order.bunqMeTabId = tab.id;
+            order.bunqStatus = tab.status;
+            order.paymentUrl = tab.shareUrl;
+        }
 
         const orders = readOrders();
         orders.unshift(order);
@@ -786,6 +825,8 @@ app.post('/api/checkout', async (req, res) => {
         res.status(201).json({
             orderId: order.id,
             paymentUrl: order.paymentUrl,
+            orderUrl,
+            paymentMethod: order.paymentMethod,
             total: order.total,
             status: order.status
         });
@@ -793,6 +834,26 @@ app.post('/api/checkout', async (req, res) => {
         console.error('Checkout fout:', err.message || err);
         res.status(502).json({ error: err.message || 'Kon betaling niet starten.' });
     }
+});
+
+app.patch('/api/admin/orders/:id', requireAdmin, (req, res) => {
+    const orders = readOrders();
+    const index = orders.findIndex((o) => o.id === req.params.id);
+    if (index === -1) return res.status(404).json({ error: 'Bestelling niet gevonden.' });
+
+    const status = String(req.body?.status || '').trim().toLowerCase();
+    if (!['paid', 'pending', 'cancelled'].includes(status)) {
+        return res.status(400).json({ error: 'Ongeldige status.' });
+    }
+
+    orders[index].status = status;
+    if (status === 'paid') {
+        orders[index].paidAt = orders[index].paidAt || new Date().toISOString();
+    } else if (status === 'pending') {
+        orders[index].paidAt = null;
+    }
+    writeOrders(orders);
+    res.json(orders[index]);
 });
 
 app.get('/api/orders/:id', async (req, res) => {

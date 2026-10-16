@@ -152,7 +152,7 @@ function injectCartDrawer() {
                     <span>Totaal</span>
                     <strong id="cart-subtotal">€0,00</strong>
                 </div>
-                <p class="cart-shipping-note">Gratis verzending vanaf €100</p>
+                <p class="cart-shipping-note">Wereldwijde verzending · gratis vanaf €100 (NL/BE)</p>
                 <button type="button" class="btn-checkout" id="cart-checkout">Afrekenen</button>
                 <button type="button" class="btn-continue" id="cart-continue">Verder winkelen</button>
             </div>

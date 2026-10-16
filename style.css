@@ -1725,6 +1725,68 @@ body.cart-open {
     line-height: 1.45;
 }
 
+.payment-methods {
+    margin: 0 0 1.25rem;
+    padding: 0;
+    border: none;
+}
+
+.payment-methods legend {
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin-bottom: 0.65rem;
+    padding: 0;
+}
+
+.payment-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    margin-bottom: 0.55rem;
+    border: 1px solid var(--line, #e4e0d8);
+    border-radius: 12px;
+    cursor: pointer;
+    background: #fff;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.payment-option:has(input:checked) {
+    border-color: #1c2a46;
+    background: #f7f5f0;
+}
+
+.payment-option input {
+    margin-top: 0.2rem;
+    accent-color: #1c2a46;
+}
+
+.payment-option-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.payment-option-text strong {
+    font-size: 0.95rem;
+}
+
+.payment-option-text small {
+    color: var(--muted, #667085);
+    font-size: 0.8rem;
+    line-height: 1.35;
+}
+
+.crypto-wallet {
+    display: inline-block;
+    margin-top: 0.25rem;
+    padding: 0.35rem 0.5rem;
+    background: #f3f1eb;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    word-break: break-all;
+}
+
 .checkout-empty {
     max-width: 420px;
     margin: 0 auto;
