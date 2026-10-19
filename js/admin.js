@@ -9,12 +9,17 @@ const productForm = document.getElementById('product-form');
 const formStatus = document.getElementById('form-status');
 const tbody = document.getElementById('products-tbody');
 const contactsTbody = document.getElementById('contacts-tbody');
-const ordersTbody = document.getElementById('orders-tbody');
+const ordersList = document.getElementById('orders-list');
+const ordersSortSelect = document.getElementById('orders-sort');
 const productTotal = document.getElementById('product-total');
 const contactsTotal = document.getElementById('contacts-total');
 const ordersTotal = document.getElementById('orders-total');
 const contactsBadge = document.getElementById('contacts-badge');
 const ordersBadge = document.getElementById('orders-badge');
+const ordersCountAll = document.getElementById('orders-count-all');
+const ordersCountPending = document.getElementById('orders-count-pending');
+const ordersCountPaid = document.getElementById('orders-count-paid');
+const ordersCountCancelled = document.getElementById('orders-count-cancelled');
 const imageInput = document.getElementById('field-image');
 const imageGallery = document.getElementById('image-gallery');
 const aiScanStatus = document.getElementById('ai-scan-status');
@@ -34,6 +39,10 @@ const shippingStatus = document.getElementById('shipping-status');
 let keptImages = [];
 /** @type {{ file: File, url: string }[]} */
 let pendingImages = [];
+/** @type {object[]} */
+let allOrders = [];
+let ordersFilter = 'all';
+let ordersSort = 'newest';
 
 function getToken() {
     return sessionStorage.getItem(TOKEN_KEY) || '';
@@ -302,10 +311,28 @@ function renderProducts(products) {
     }).join('');
 }
 
+function normalizeOrderStatus(status) {
+    const value = String(status || 'pending').toLowerCase();
+    if (value === 'paid') return 'paid';
+    if (value === 'cancelled' || value === 'expired') return 'cancelled';
+    return 'pending';
+}
+
 function orderStatusLabel(status) {
-    if (status === 'paid') return 'Betaald';
-    if (status === 'cancelled') return 'Geannuleerd';
+    const normalized = normalizeOrderStatus(status);
+    if (normalized === 'paid') return 'Betaald';
+    if (normalized === 'cancelled') {
+        return String(status || '').toLowerCase() === 'expired' ? 'Verlopen' : 'Geannuleerd';
+    }
     return 'Open';
+}
+
+function orderStatusClass(status) {
+    const normalized = normalizeOrderStatus(status);
+    if (normalized === 'paid') return 'is-paid';
+    if (String(status || '').toLowerCase() === 'expired') return 'is-expired';
+    if (normalized === 'cancelled') return 'is-cancelled';
+    return 'is-pending';
 }
 
 function paymentMethodLabel(method) {
@@ -325,14 +352,69 @@ function formatAddress(address) {
     return parts.join(', ');
 }
 
-function renderOrders(orders) {
-    const sorted = [...orders].sort((a, b) => {
+function statusSortRank(status) {
+    const normalized = normalizeOrderStatus(status);
+    if (normalized === 'pending') return 0;
+    if (normalized === 'paid') return 1;
+    return 2;
+}
+
+function getFilteredSortedOrders() {
+    let list = [...allOrders];
+
+    if (ordersFilter !== 'all') {
+        list = list.filter((o) => normalizeOrderStatus(o.status) === ordersFilter);
+    }
+
+    list.sort((a, b) => {
+        if (ordersSort === 'oldest') {
+            return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+        }
+        if (ordersSort === 'status') {
+            const rank = statusSortRank(a.status) - statusSortRank(b.status);
+            if (rank !== 0) return rank;
+            return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+        }
+        if (ordersSort === 'total-desc') {
+            return (Number(b.total) || 0) - (Number(a.total) || 0);
+        }
+        if (ordersSort === 'total-asc') {
+            return (Number(a.total) || 0) - (Number(b.total) || 0);
+        }
         return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
     });
-    const pendingCount = sorted.filter((o) => o.status === 'pending').length;
 
-    ordersTotal.textContent = `${sorted.length} bestelling${sorted.length !== 1 ? 'en' : ''}` +
-        (pendingCount ? ` · ${pendingCount} open` : '');
+    return list;
+}
+
+function updateOrdersFilterUI() {
+    document.querySelectorAll('.orders-filter').forEach((btn) => {
+        btn.classList.toggle('is-active', btn.dataset.filter === ordersFilter);
+    });
+    if (ordersSortSelect) ordersSortSelect.value = ordersSort;
+}
+
+function renderOrders() {
+    const pendingCount = allOrders.filter((o) => normalizeOrderStatus(o.status) === 'pending').length;
+    const paidCount = allOrders.filter((o) => normalizeOrderStatus(o.status) === 'paid').length;
+    const cancelledCount = allOrders.filter((o) => normalizeOrderStatus(o.status) === 'cancelled').length;
+    const visible = getFilteredSortedOrders();
+
+    if (ordersCountAll) ordersCountAll.textContent = String(allOrders.length);
+    if (ordersCountPending) ordersCountPending.textContent = String(pendingCount);
+    if (ordersCountPaid) ordersCountPaid.textContent = String(paidCount);
+    if (ordersCountCancelled) ordersCountCancelled.textContent = String(cancelledCount);
+
+    if (ordersFilter === 'pending') {
+        ordersTotal.textContent = `${visible.length} open bestelling${visible.length !== 1 ? 'en' : ''}`;
+    } else if (ordersFilter === 'paid') {
+        ordersTotal.textContent = `${visible.length} betaalde bestelling${visible.length !== 1 ? 'en' : ''}`;
+    } else if (ordersFilter === 'cancelled') {
+        ordersTotal.textContent = `${visible.length} geannuleerde bestelling${visible.length !== 1 ? 'en' : ''}`;
+    } else {
+        ordersTotal.textContent = `${allOrders.length} bestelling${allOrders.length !== 1 ? 'en' : ''}` +
+            (pendingCount ? ` · ${pendingCount} open` : '');
+    }
 
     if (pendingCount > 0) {
         ordersBadge.hidden = false;
@@ -341,28 +423,30 @@ function renderOrders(orders) {
         ordersBadge.hidden = true;
     }
 
-    if (!sorted.length) {
-        ordersTbody.innerHTML = '<tr><td colspan="6">Nog geen bestellingen.</td></tr>';
+    updateOrdersFilterUI();
+
+    if (!allOrders.length) {
+        ordersList.innerHTML = '<p class="orders-empty">Nog geen bestellingen.</p>';
         return;
     }
 
-    ordersTbody.innerHTML = sorted.map((o) => {
+    if (!visible.length) {
+        ordersList.innerHTML = '<p class="orders-empty">Geen bestellingen met deze status.</p>';
+        return;
+    }
+
+    ordersList.innerHTML = visible.map((o) => {
         const status = o.status || 'pending';
-        const statusClass = status === 'paid'
-            ? 'is-paid'
-            : status === 'cancelled'
-                ? 'is-cancelled'
-                : 'is-pending';
+        const normalized = normalizeOrderStatus(status);
         const items = Array.isArray(o.items) ? o.items : [];
         const itemsHtml = items.length
             ? `<ul class="order-items-list">${items.map((item) => `
                 <li>
-                    ${escapeHtml(item.title || 'Product')}
-                    × ${Number(item.quantity) || 1}
-                    <span class="order-meta">${formatEuro(item.lineTotal ?? (item.price * item.quantity))}</span>
+                    <span class="order-item-title">${escapeHtml(item.title || 'Product')} × ${Number(item.quantity) || 1}</span>
+                    <span class="order-item-price">${formatEuro(item.lineTotal ?? (item.price * item.quantity))}</span>
                 </li>
             `).join('')}</ul>`
-            : '<span class="order-meta">Geen producten</span>';
+            : '<div class="order-meta">Geen producten</div>';
 
         const customer = o.customer || {};
         const address = formatAddress(customer.address);
@@ -373,36 +457,45 @@ function renderOrders(orders) {
             ? `<div class="order-meta"><a href="tel:${escapeHtml(customer.phone)}">${escapeHtml(customer.phone)}</a></div>`
             : '';
 
+        const actions = [];
+        if (normalized !== 'paid') {
+            actions.push('<button type="button" class="btn-secondary btn-order-paid">Betaald</button>');
+        }
+        if (normalized === 'pending') {
+            actions.push('<button type="button" class="btn-danger btn-order-cancel">Annuleer</button>');
+        }
+        if (normalized === 'cancelled') {
+            actions.push('<button type="button" class="btn-secondary btn-order-reopen">Heropen</button>');
+        }
+
         return `
-        <tr data-order-id="${escapeHtml(o.id)}">
-            <td data-label="Datum">
-                ${escapeHtml(formatDateTime(o.createdAt))}
-                <div class="order-meta">#${escapeHtml(String(o.id || '').slice(0, 8))}</div>
-            </td>
-            <td data-label="Klant">
+        <article class="order-card" data-order-id="${escapeHtml(o.id)}">
+            <div class="order-card-block">
+                <div class="order-card-head">
+                    <span class="order-card-id">#${escapeHtml(String(o.id || '').slice(0, 8))}</span>
+                    <span class="contact-status order-status ${orderStatusClass(status)}">${orderStatusLabel(status)}</span>
+                </div>
+                <div class="order-meta">${escapeHtml(formatDateTime(o.createdAt))}</div>
+                ${paidLine}
+                <div class="order-card-label order-card-label-spaced">Klant</div>
                 <strong>${escapeHtml(customer.name || '—')}</strong>
                 <div class="order-meta"><a href="mailto:${escapeHtml(customer.email || '')}">${escapeHtml(customer.email || '')}</a></div>
                 ${phoneLine}
                 ${address ? `<div class="order-meta">${escapeHtml(address)}</div>` : ''}
-            </td>
-            <td data-label="Producten">${itemsHtml}</td>
-            <td data-label="Totaal">
-                <strong>${formatEuro(o.total)}</strong>
-                <div class="order-meta">${escapeHtml(paymentMethodLabel(o.paymentMethod))}</div>
-                ${o.shipping ? `<div class="order-meta">Verzending ${formatEuro(o.shipping)}</div>` : ''}
-            </td>
-            <td data-label="Status">
-                <span class="contact-status order-status ${statusClass}">${orderStatusLabel(status)}</span>
-                ${paidLine}
-            </td>
-            <td class="admin-cell-actions" data-label="">
-                <div class="admin-row-actions">
-                    ${status !== 'paid' ? '<button type="button" class="btn-secondary btn-order-paid">Markeer betaald</button>' : ''}
-                    ${status === 'pending' ? '<button type="button" class="btn-danger btn-order-cancel">Annuleren</button>' : ''}
-                    ${status === 'cancelled' ? '<button type="button" class="btn-secondary btn-order-reopen">Heropen</button>' : ''}
+            </div>
+            <div class="order-card-block">
+                <span class="order-card-label">Producten</span>
+                ${itemsHtml}
+            </div>
+            <div class="order-card-aside">
+                <div class="order-card-total">
+                    <strong>${formatEuro(o.total)}</strong>
+                    <div class="order-meta">${escapeHtml(paymentMethodLabel(o.paymentMethod))}</div>
+                    ${o.shipping ? `<div class="order-meta">Verzending ${formatEuro(o.shipping)}</div>` : ''}
                 </div>
-            </td>
-        </tr>
+                ${actions.length ? `<div class="admin-row-actions">${actions.join('')}</div>` : ''}
+            </div>
+        </article>
         `;
     }).join('');
 }
@@ -487,8 +580,9 @@ async function loadContacts() {
 
 async function loadOrders() {
     const orders = await api('/api/admin/orders');
-    renderOrders(orders);
-    return orders;
+    allOrders = Array.isArray(orders) ? orders : [];
+    renderOrders();
+    return allOrders;
 }
 
 function fillShippingForm(settings) {
@@ -744,10 +838,22 @@ tbody.addEventListener('click', async (e) => {
     }
 });
 
-ordersTbody.addEventListener('click', async (e) => {
-    const row = e.target.closest('tr[data-order-id]');
-    if (!row) return;
-    const id = row.dataset.orderId;
+document.querySelector('.orders-filters')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('.orders-filter');
+    if (!btn) return;
+    ordersFilter = btn.dataset.filter || 'all';
+    renderOrders();
+});
+
+ordersSortSelect?.addEventListener('change', () => {
+    ordersSort = ordersSortSelect.value || 'newest';
+    renderOrders();
+});
+
+ordersList?.addEventListener('click', async (e) => {
+    const card = e.target.closest('[data-order-id]');
+    if (!card) return;
+    const id = card.dataset.orderId;
 
     let status = null;
     if (e.target.classList.contains('btn-order-paid')) {

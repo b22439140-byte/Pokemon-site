@@ -471,6 +471,121 @@
             color: #15803d;
         }
 
+        .orders-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.85rem 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .orders-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.45rem;
+        }
+
+        .orders-filter {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.45rem 0.85rem;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            background: #fff;
+            font: inherit;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--ink-soft);
+            cursor: pointer;
+        }
+
+        .orders-filter.is-active {
+            background: var(--ink);
+            border-color: var(--ink);
+            color: #fff;
+        }
+
+        .orders-filter-count {
+            display: inline-grid;
+            place-items: center;
+            min-width: 1.2rem;
+            height: 1.2rem;
+            padding: 0 0.3rem;
+            border-radius: 999px;
+            background: rgba(12, 18, 34, 0.08);
+            font-size: 0.7rem;
+            font-weight: 800;
+        }
+
+        .orders-filter.is-active .orders-filter-count {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+
+        .orders-sort {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--muted);
+        }
+
+        .orders-sort select {
+            min-width: 10.5rem;
+            padding: 0.45rem 0.7rem;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            background: #fff;
+            font: inherit;
+            font-weight: 600;
+            color: var(--ink);
+        }
+
+        .orders-list {
+            display: grid;
+            gap: 0.85rem;
+        }
+
+        .orders-empty {
+            padding: 1.5rem 1rem;
+            text-align: center;
+            color: var(--muted);
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        .order-card {
+            display: grid;
+            grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.4fr) auto;
+            gap: 1rem 1.25rem;
+            padding: 1.1rem 1.15rem;
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            min-width: 0;
+        }
+
+        .order-card-head {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.45rem 0.65rem;
+            margin-bottom: 0.55rem;
+        }
+
+        .order-card-id {
+            font-family: Syne, sans-serif;
+            font-size: 0.95rem;
+            font-weight: 800;
+            letter-spacing: -0.01em;
+        }
+
         .order-status.is-pending {
             background: #fef3c7;
             color: #92400e;
@@ -481,9 +596,46 @@
             color: #15803d;
         }
 
-        .order-status.is-cancelled {
+        .order-status.is-cancelled,
+        .order-status.is-expired {
             background: #f3f4f6;
             color: #4b5563;
+        }
+
+        .order-card-block {
+            min-width: 0;
+        }
+
+        .order-card-label {
+            display: block;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--muted);
+            margin-bottom: 0.3rem;
+        }
+
+        .order-card-label-spaced {
+            margin-top: 0.75rem;
+        }
+
+        .order-card-block strong {
+            display: block;
+            font-size: 0.95rem;
+            word-break: break-word;
+        }
+
+        .order-meta {
+            color: var(--muted);
+            font-size: 0.82rem;
+            margin-top: 0.2rem;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+        }
+
+        .order-meta a {
+            color: inherit;
         }
 
         .order-items-list {
@@ -494,14 +646,122 @@
             line-height: 1.4;
         }
 
-        .order-items-list li + li {
-            margin-top: 0.35rem;
+        .order-items-list li {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.75rem;
+            padding: 0.25rem 0;
         }
 
-        .order-meta {
+        .order-items-list li + li {
+            border-top: 1px solid rgba(12, 18, 34, 0.06);
+        }
+
+        .order-item-title {
+            min-width: 0;
+            word-break: break-word;
+        }
+
+        .order-item-price {
+            flex-shrink: 0;
             color: var(--muted);
             font-size: 0.82rem;
-            margin-top: 0.2rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .order-card-aside {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 0.75rem;
+            min-width: 9.5rem;
+        }
+
+        .order-card-total {
+            text-align: right;
+        }
+
+        .order-card-total strong {
+            display: block;
+            font-size: 1.05rem;
+            font-weight: 800;
+        }
+
+        .order-card-aside .admin-row-actions {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .order-card-aside .admin-row-actions .btn-secondary,
+        .order-card-aside .admin-row-actions .btn-danger {
+            width: 100%;
+            min-height: 38px;
+            justify-content: center;
+        }
+
+        @media (max-width: 900px) {
+            .order-card {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .order-card-aside {
+                grid-column: 1 / -1;
+                flex-direction: row;
+                align-items: center;
+                justify-content: space-between;
+                padding-top: 0.75rem;
+                border-top: 1px solid var(--line);
+                min-width: 0;
+            }
+
+            .order-card-total {
+                text-align: left;
+            }
+
+            .order-card-aside .admin-row-actions {
+                width: auto;
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: flex-end;
+            }
+
+            .order-card-aside .admin-row-actions .btn-secondary,
+            .order-card-aside .admin-row-actions .btn-danger {
+                width: auto;
+            }
+        }
+
+        @media (max-width: 560px) {
+            .order-card {
+                grid-template-columns: 1fr;
+            }
+
+            .order-card-aside {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .order-card-aside .admin-row-actions {
+                width: 100%;
+                flex-direction: column;
+            }
+
+            .order-card-aside .admin-row-actions .btn-secondary,
+            .order-card-aside .admin-row-actions .btn-danger {
+                width: 100%;
+            }
+
+            .orders-sort {
+                width: 100%;
+            }
+
+            .orders-sort select {
+                flex: 1;
+            }
         }
 
         .contact-product-chip {
@@ -958,22 +1218,34 @@
                         <p id="orders-total">Laden…</p>
                     </div>
                 </div>
-                <div class="admin-table-wrap">
-                    <table class="admin-table">
-                        <thead>
-                            <tr>
-                                <th>Datum</th>
-                                <th>Klant</th>
-                                <th>Producten</th>
-                                <th>Totaal</th>
-                                <th>Status</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody id="orders-tbody">
-                            <tr><td colspan="6">Laden…</td></tr>
-                        </tbody>
-                    </table>
+                <div class="orders-toolbar">
+                    <div class="orders-filters" role="group" aria-label="Filter op status">
+                        <button type="button" class="orders-filter is-active" data-filter="all">
+                            Alle <span class="orders-filter-count" id="orders-count-all">0</span>
+                        </button>
+                        <button type="button" class="orders-filter" data-filter="pending">
+                            Open <span class="orders-filter-count" id="orders-count-pending">0</span>
+                        </button>
+                        <button type="button" class="orders-filter" data-filter="paid">
+                            Betaald <span class="orders-filter-count" id="orders-count-paid">0</span>
+                        </button>
+                        <button type="button" class="orders-filter" data-filter="cancelled">
+                            Geannuleerd <span class="orders-filter-count" id="orders-count-cancelled">0</span>
+                        </button>
+                    </div>
+                    <label class="orders-sort">
+                        Sorteer
+                        <select id="orders-sort" aria-label="Sorteer bestellingen">
+                            <option value="newest">Nieuwste eerst</option>
+                            <option value="oldest">Oudste eerst</option>
+                            <option value="status">Status</option>
+                            <option value="total-desc">Hoogste bedrag</option>
+                            <option value="total-asc">Laagste bedrag</option>
+                        </select>
+                    </label>
+                </div>
+                <div id="orders-list" class="orders-list" aria-live="polite">
+                    <p class="orders-empty">Laden…</p>
                 </div>
             </div>
 
