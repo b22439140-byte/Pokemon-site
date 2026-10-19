@@ -3,7 +3,34 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+
+// Optional local .env (Render/cloud zet env vars in het dashboard)
+try {
+    const envPath = path.join(__dirname, '.env');
+    if (fs.existsSync(envPath)) {
+        for (const line of fs.readFileSync(envPath, 'utf8').split(/\n')) {
+            const trimmed = line.trim();
+            if (!trimmed || trimmed.startsWith('#')) continue;
+            const eq = trimmed.indexOf('=');
+            if (eq < 1) continue;
+            const key = trimmed.slice(0, eq).trim();
+            if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key) || process.env[key] !== undefined) continue;
+            let value = trimmed.slice(eq + 1).trim();
+            if (
+                (value.startsWith('"') && value.endsWith('"')) ||
+                (value.startsWith("'") && value.endsWith("'"))
+            ) {
+                value = value.slice(1, -1);
+            }
+            process.env[key] = value;
+        }
+    }
+} catch (_) {
+    /* ignore unreadable .env */
+}
+
 const { createBunqClient } = require('./lib/bunq');
+const email = require('./lib/email');
 
 const PORT = process.env.PORT || 3000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'pokevault';
@@ -781,7 +808,7 @@ app.post('/api/checkout', async (req, res) => {
         }
 
         const orderId = crypto.randomBytes(12).toString('hex');
-        const orderUrl = `${baseUrl}/bestelling.html?order=${encodeURIComponent(orderId)}`;
+        const orderUrl = `${baseUrl}/bestelling?order=${encodeURIComponent(orderId)}`;
         const description = `PokeVault #${orderId.slice(0, 8)}`;
 
         let order = {
@@ -822,6 +849,14 @@ app.post('/api/checkout', async (req, res) => {
         orders.unshift(order);
         writeOrders(orders);
 
+        try {
+            await email.notifyOrderPlaced(order, { orderUrl });
+            orders[0] = order;
+            writeOrders(orders);
+        } catch (err) {
+            console.error('Order e-mails mislukt:', err.message || err);
+        }
+
         res.status(201).json({
             orderId: order.id,
             paymentUrl: order.paymentUrl,
@@ -836,7 +871,7 @@ app.post('/api/checkout', async (req, res) => {
     }
 });
 
-app.patch('/api/admin/orders/:id', requireAdmin, (req, res) => {
+app.patch('/api/admin/orders/:id', requireAdmin, async (req, res) => {
     const orders = readOrders();
     const index = orders.findIndex((o) => o.id === req.params.id);
     if (index === -1) return res.status(404).json({ error: 'Bestelling niet gevonden.' });
@@ -846,12 +881,24 @@ app.patch('/api/admin/orders/:id', requireAdmin, (req, res) => {
         return res.status(400).json({ error: 'Ongeldige status.' });
     }
 
+    const previousStatus = orders[index].status;
     orders[index].status = status;
     if (status === 'paid') {
         orders[index].paidAt = orders[index].paidAt || new Date().toISOString();
     } else if (status === 'pending') {
         orders[index].paidAt = null;
     }
+
+    if (status === 'paid' && previousStatus !== 'paid') {
+        const baseUrl = PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
+        const orderUrl = email.orderPageUrl(orders[index], baseUrl);
+        try {
+            await email.notifyOrderPaid(orders[index], { orderUrl });
+        } catch (err) {
+            console.error('Betalingsbevestiging e-mail mislukt:', err.message || err);
+        }
+    }
+
     writeOrders(orders);
     res.json(orders[index]);
 });
@@ -865,11 +912,24 @@ app.get('/api/orders/:id', async (req, res) => {
         }
 
         let order = orders[index];
+        const wasPaid = order.status === 'paid';
         if (order.status === 'pending' && order.bunqMeTabId && BUNQ_API_KEY) {
             try {
                 order = await refreshOrderPaymentStatus(order);
                 orders[index] = order;
                 writeOrders(orders);
+
+                if (!wasPaid && order.status === 'paid') {
+                    const baseUrl = PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
+                    const orderUrl = email.orderPageUrl(order, baseUrl);
+                    try {
+                        await email.notifyOrderPaid(order, { orderUrl });
+                        orders[index] = order;
+                        writeOrders(orders);
+                    } catch (err) {
+                        console.error('Betalingsbevestiging e-mail mislukt:', err.message || err);
+                    }
+                }
             } catch (err) {
                 console.warn('bunq status check mislukt:', err.message || err);
             }
@@ -949,12 +1009,18 @@ app.get(['/admin', '/admin/'], (_req, res) => {
     res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
-app.get('/admin.html', (_req, res) => {
-    res.redirect(301, '/admin');
-});
-
 app.get(['/home', '/home/'], (_req, res) => {
     res.redirect(301, '/');
+});
+
+// Clean URLs: /contact.html → /contact (preserve query string)
+app.use((req, res, next) => {
+    if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+    if (!req.path.endsWith('.html')) return next();
+    let clean = req.path.slice(0, -'.html'.length);
+    if (clean === '/index' || clean === '') clean = '/';
+    const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+    return res.redirect(301, clean + qs);
 });
 
 app.use('/uploads', express.static(UPLOADS_DIR));
@@ -963,7 +1029,7 @@ app.use(express.static(__dirname, { extensions: ['html'] }));
 app.use((req, res) => {
     res.status(404).type('text').send(
         `Pagina niet gevonden: ${req.method} ${req.path}\n` +
-        'Tip: open /admin of /admin.html — start de server met: npm start'
+        'Tip: open /admin — start de server met: npm start'
     );
 });
 
@@ -994,5 +1060,10 @@ app.listen(PORT, () => {
         console.log(`bunq checkout: aan (${BUNQ_SANDBOX ? 'sandbox' : 'production'})`);
     } else {
         console.log('bunq checkout: uit — stel BUNQ_API_KEY in om betalingen te activeren');
+    }
+    if (email.isConfigured()) {
+        console.log('Order e-mails: aan (SMTP geconfigureerd)');
+    } else {
+        console.log('Order e-mails: uit — stel SMTP_HOST, SMTP_USER, SMTP_PASS en MAIL_FROM in');
     }
 });

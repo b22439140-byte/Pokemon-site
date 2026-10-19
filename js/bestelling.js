@@ -64,8 +64,8 @@
                 <p><strong>Totaal:</strong> ${formatEuro(order.total)}</p>
             `,
             actionsHtml: `
-                <a class="btn-submit checkout-empty-link" href="aanbod.html">Verder winkelen</a>
-                <a class="order-secondary-link" href="contact.html">Vragen? Neem contact op</a>
+                <a class="btn-submit checkout-empty-link" href="/aanbod">Verder winkelen</a>
+                <a class="order-secondary-link" href="/contact">Vragen? Neem contact op</a>
             `
         });
     }
@@ -90,8 +90,8 @@
                 ${walletBlock}
             `,
             actionsHtml: `
-                <a class="btn-submit checkout-empty-link" href="contact.html?order=${encodeURIComponent(order.id)}">Contact over betaling</a>
-                <a class="order-secondary-link" href="aanbod.html">Verder winkelen</a>
+                <a class="btn-submit checkout-empty-link" href="/contact?order=${encodeURIComponent(order.id)}">Contact over betaling</a>
+                <a class="order-secondary-link" href="/aanbod">Verder winkelen</a>
             `
         });
     }
@@ -118,7 +118,7 @@
             `,
             actionsHtml: `
                 ${payLink}
-                <a class="order-secondary-link" href="contact.html">Hulp nodig?</a>
+                <a class="order-secondary-link" href="/contact">Hulp nodig?</a>
             `
         });
     }
@@ -144,7 +144,7 @@
                     label: 'Bestelling niet gevonden',
                     detail: err.message || 'Kon de bestelling niet laden.',
                     hero: 'Er ging iets mis.',
-                    actionsHtml: `<a class="btn-submit checkout-empty-link" href="aanbod.html">Terug naar aanbod</a>`
+                    actionsHtml: `<a class="btn-submit checkout-empty-link" href="/aanbod">Terug naar aanbod</a>`
                 });
                 return;
             }
@@ -163,7 +163,7 @@
                 label: 'Geen bestelling',
                 detail: 'Open deze pagina via de link na het afrekenen.',
                 hero: 'Geen bestelnummer gevonden.',
-                actionsHtml: `<a class="btn-submit checkout-empty-link" href="aanbod.html">Naar aanbod</a>`
+                actionsHtml: `<a class="btn-submit checkout-empty-link" href="/aanbod">Naar aanbod</a>`
             });
             return;
         }

@@ -31,14 +31,14 @@ function renderProductCard(product) {
     return `
         <article class="product-card">
             ${badgeHtml}
-            <a href="product.html?id=${product.id}" class="card-image-link">
+            <a href="/product?id=${product.id}" class="card-image-link">
                 <div class="card-image">
                     <img src="${product.image}" alt="${product.title}"${imgStyle}>
                 </div>
             </a>
             <div class="product-brand">${metaBits.join(' · ')}</div>
             <h3 class="product-title">
-                <a href="product.html?id=${product.id}">${product.title}</a>
+                <a href="/product?id=${product.id}">${product.title}</a>
             </h3>
             <div class="product-price-row">
                 <span class="price-current">${formatEuro(product.price)}</span>
@@ -49,7 +49,7 @@ function renderProductCard(product) {
                  data-product-title="${product.title.replace(/"/g, '&quot;')}"
                  data-product-image="${product.image}">
                 ${product.purchaseMode === 'contact'
-                    ? `<a class="btn-contact" href="contact.html?product=${encodeURIComponent(product.id)}">Neem contact op</a>`
+                    ? `<a class="btn-contact" href="/contact?product=${encodeURIComponent(product.id)}">Neem contact op</a>`
                     : `<input type="number" class="qty-input" value="1" min="1" max="${product.maxQty}" data-price="${product.price}" aria-label="Aantal">
                        <button type="button" class="btn-add">${product.buttonLabel || 'In winkelwagen'}</button>`}
             </div>

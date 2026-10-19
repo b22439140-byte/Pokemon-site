@@ -63,7 +63,7 @@ const Cart = {
                 <div class="cart-empty">
                     <span class="cart-empty-icon" aria-hidden="true">🛒</span>
                     <p>Je winkelwagen is leeg</p>
-                    <a href="aanbod.html" class="cart-empty-link">Bekijk ons aanbod</a>
+                    <a href="/aanbod" class="cart-empty-link">Bekijk ons aanbod</a>
                 </div>
             `;
         } else {
@@ -178,7 +178,7 @@ function initCart() {
         checkoutBtn.addEventListener('click', () => {
             Cart.load();
             if (!Cart.items.length) return;
-            window.location.href = 'checkout.html';
+            window.location.href = '/checkout';
         });
     }
 
@@ -224,9 +224,9 @@ document.addEventListener('DOMContentLoaded', () => {
             event.preventDefault();
             const query = searchForm.querySelector('input').value.trim();
             if (query) {
-                window.location.href = `aanbod.html?q=${encodeURIComponent(query)}`;
+                window.location.href = `/aanbod?q=${encodeURIComponent(query)}`;
             } else {
-                window.location.href = 'aanbod.html';
+                window.location.href = '/aanbod';
             }
         });
     }

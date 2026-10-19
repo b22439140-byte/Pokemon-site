@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <div class="empty-state">
                 <h2>Product niet gevonden</h2>
                 <p>Dit product bestaat niet of is niet meer beschikbaar.</p>
-                <a class="btn-hero" href="aanbod.html">Terug naar aanbod</a>
+                <a class="btn-hero" href="/aanbod">Terug naar aanbod</a>
             </div>
         `;
         document.title = 'Product niet gevonden — PokeVault';
@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         : '';
 
     const metaItems = [
-        product.category && `<li><strong>Categorie:</strong> <a href="aanbod.html?category=${product.category}">${typeof categoryLabel === 'function' ? categoryLabel(product.category) : product.category}</a></li>`,
+        product.category && `<li><strong>Categorie:</strong> <a href="/aanbod?category=${product.category}">${typeof categoryLabel === 'function' ? categoryLabel(product.category) : product.category}</a></li>`,
         product.psa && `<li><strong>PSA:</strong> ${typeof psaLabel === 'function' ? psaLabel(product.psa) : `PSA ${product.psa}`}</li>`,
         product.set && `<li><strong>Set:</strong> ${product.set}</li>`,
         product.type && `<li><strong>Type:</strong> ${product.type}</li>`,
@@ -84,9 +84,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     container.innerHTML = `
         <nav class="breadcrumb" aria-label="Breadcrumb">
-            <a href="index.html">Home</a>
+            <a href="/">Home</a>
             <span aria-hidden="true">/</span>
-            <a href="aanbod.html${product.category ? `?category=${product.category}` : ''}">${typeof categoryLabel === 'function' && product.category ? categoryLabel(product.category) : 'Aanbod'}</a>
+            <a href="/aanbod${product.category ? `?category=${product.category}` : ''}">${typeof categoryLabel === 'function' && product.category ? categoryLabel(product.category) : 'Aanbod'}</a>
             <span aria-hidden="true">/</span>
             <span>${product.title}</span>
         </nav>
@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                      data-product-title="${product.title.replace(/"/g, '&quot;')}"
                      data-product-image="${mainImage.replace(/"/g, '&quot;')}">
                     ${product.purchaseMode === 'contact'
-                        ? `<a class="btn-contact btn-contact-large" href="contact.html?product=${encodeURIComponent(product.id)}">Neem contact op</a>`
+                        ? `<a class="btn-contact btn-contact-large" href="/contact?product=${encodeURIComponent(product.id)}">Neem contact op</a>`
                         : `<input type="number" class="qty-input" value="1" min="1" max="${product.maxQty}" data-price="${product.price}" aria-label="Aantal">
                            <button type="button" class="btn-add btn-add-large">${product.buttonLabel || 'In winkelwagen'}</button>`}
                 </div>

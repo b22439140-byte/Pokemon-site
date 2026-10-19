@@ -154,7 +154,7 @@
                     Cart.updateHeader();
                 }
                 window.location.href = data.orderUrl
-                    || `/bestelling.html?order=${encodeURIComponent(data.orderId)}`;
+                    || `/bestelling?order=${encodeURIComponent(data.orderId)}`;
                 return;
             }
 
