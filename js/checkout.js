@@ -147,21 +147,32 @@
                 throw new Error(data.error || 'Kon betaling niet starten.');
             }
 
-            if (data.paymentMethod === 'crypto' || data.orderUrl) {
-                if (typeof Cart !== 'undefined') {
-                    Cart.items = [];
-                    Cart.save();
-                    Cart.updateHeader();
+            const clearCart = () => {
+                if (typeof Cart === 'undefined') return;
+                Cart.items = [];
+                Cart.save();
+                Cart.updateHeader();
+            };
+
+            // Always stay on this origin for order pages (never follow absolute orderUrl —
+            // that can send customers to a stale PUBLIC_BASE_URL / other Render host).
+            const localOrderPath = `/bestelling?order=${encodeURIComponent(data.orderId)}`;
+
+            if (data.paymentMethod === 'bunq') {
+                if (!data.paymentUrl) {
+                    throw new Error('Geen betaallink ontvangen.');
                 }
-                window.location.href = data.orderUrl
-                    || `/bestelling?order=${encodeURIComponent(data.orderId)}`;
+                try {
+                    sessionStorage.setItem('pokevault-pending-order', data.orderId);
+                } catch (_) { /* ignore */ }
+                clearCart();
+                // Go straight to bunq.me / iDEAL
+                window.location.href = data.paymentUrl;
                 return;
             }
 
-            if (!data.paymentUrl) {
-                throw new Error('Geen betaallink ontvangen.');
-            }
-            window.location.href = data.paymentUrl;
+            clearCart();
+            window.location.href = localOrderPath;
         } catch (err) {
             errorEl.textContent = err.message || 'Er ging iets mis.';
             errorEl.classList.add('visible');

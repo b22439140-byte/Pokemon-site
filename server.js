@@ -150,6 +150,22 @@ try {
 const app = express();
 const sessions = new Map();
 
+// Render / Cloudflare sit behind a proxy — needed for correct https + host
+app.set('trust proxy', 1);
+
+function resolvePublicBaseUrl(req) {
+    // Prefer the host the customer is actually on, so checkout never jumps to another domain.
+    const forwardedHost = String(req.get('x-forwarded-host') || '').split(',')[0].trim();
+    const host = forwardedHost || String(req.get('host') || '').trim();
+    const proto = String(req.get('x-forwarded-proto') || req.protocol || 'https')
+        .split(',')[0]
+        .trim();
+    if (host) {
+        return `${proto}://${host}`.replace(/\/$/, '');
+    }
+    return PUBLIC_BASE_URL || '';
+}
+
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -730,7 +746,7 @@ app.post('/api/checkout', async (req, res) => {
             return res.status(503).json({ error: 'Betalingen zijn nog niet geconfigureerd.' });
         }
 
-        const baseUrl = PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
+        const baseUrl = resolvePublicBaseUrl(req);
         const itemsInput = Array.isArray(req.body?.items) ? req.body.items : [];
         if (!itemsInput.length) {
             return res.status(400).json({ error: 'Je winkelwagen is leeg.' });
@@ -890,8 +906,7 @@ app.patch('/api/admin/orders/:id', requireAdmin, async (req, res) => {
     }
 
     if (status === 'paid' && previousStatus !== 'paid') {
-        const baseUrl = PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
-        const orderUrl = email.orderPageUrl(orders[index], baseUrl);
+        const orderUrl = email.orderPageUrl(orders[index], resolvePublicBaseUrl(req));
         try {
             await email.notifyOrderPaid(orders[index], { orderUrl });
         } catch (err) {
@@ -920,8 +935,7 @@ app.get('/api/orders/:id', async (req, res) => {
                 writeOrders(orders);
 
                 if (!wasPaid && order.status === 'paid') {
-                    const baseUrl = PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
-                    const orderUrl = email.orderPageUrl(order, baseUrl);
+                    const orderUrl = email.orderPageUrl(order, resolvePublicBaseUrl(req));
                     try {
                         await email.notifyOrderPaid(order, { orderUrl });
                         orders[index] = order;
