@@ -1023,6 +1023,11 @@ app.use((req, res, next) => {
     return res.redirect(301, clean + qs);
 });
 
+app.get('/favicon.ico', (_req, res) => {
+    res.type('image/x-icon');
+    res.sendFile(path.join(__dirname, 'favicon.ico'));
+});
+
 app.use('/uploads', express.static(UPLOADS_DIR));
 app.use(express.static(__dirname, { extensions: ['html'] }));
 
