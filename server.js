@@ -499,7 +499,7 @@ function parseProductBody(body, files, existing) {
             : String(body.condition).trim(),
         description: String(body.description || '').trim(),
         inStock: body.inStock == null ? (existing?.inStock ?? true) : inStock,
-        maxQty: Number.isFinite(maxQty) && maxQty > 0 ? Math.floor(maxQty) : 10,
+        maxQty: Number.isFinite(maxQty) && maxQty >= 0 ? Math.floor(maxQty) : 10,
         purchaseMode,
         buttonLabel
     };
@@ -1073,19 +1073,6 @@ app.put('/api/admin/shipping', requireAdmin, (req, res) => {
         });
     } catch (err) {
         res.status(400).json({ error: err.message || 'Kon verzendkosten niet opslaan.' });
-    }
-});
-
-app.post('/api/admin/test-email', requireAdmin, async (req, res) => {
-    try {
-        const to = String(req.body?.to || '').trim();
-        const result = await mailer.sendTestEmail(to || undefined);
-        if (!result.ok) {
-            return res.status(400).json(result);
-        }
-        res.json(result);
-    } catch (err) {
-        res.status(400).json({ ok: false, error: err.message || 'Testmail mislukt.' });
     }
 });
 

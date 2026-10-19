@@ -9,23 +9,26 @@ const productForm = document.getElementById('product-form');
 const formStatus = document.getElementById('form-status');
 const tbody = document.getElementById('products-tbody');
 const contactsTbody = document.getElementById('contacts-tbody');
+const ordersTbody = document.getElementById('orders-tbody');
 const productTotal = document.getElementById('product-total');
 const contactsTotal = document.getElementById('contacts-total');
+const ordersTotal = document.getElementById('orders-total');
 const contactsBadge = document.getElementById('contacts-badge');
+const ordersBadge = document.getElementById('orders-badge');
 const imageInput = document.getElementById('field-image');
 const imageGallery = document.getElementById('image-gallery');
 const aiScanStatus = document.getElementById('ai-scan-status');
 const btnAiScan = document.getElementById('btn-ai-scan');
 const viewProducts = document.getElementById('view-products');
 const viewContacts = document.getElementById('view-contacts');
+const viewOrders = document.getElementById('view-orders');
 const viewShipping = document.getElementById('view-shipping');
 const tabProducts = document.getElementById('tab-products');
 const tabContacts = document.getElementById('tab-contacts');
+const tabOrders = document.getElementById('tab-orders');
 const tabShipping = document.getElementById('tab-shipping');
 const shippingForm = document.getElementById('shipping-form');
 const shippingStatus = document.getElementById('shipping-status');
-const emailTestForm = document.getElementById('email-test-form');
-const emailTestStatus = document.getElementById('email-test-status');
 
 /** @type {string[]} */
 let keptImages = [];
@@ -190,9 +193,10 @@ function renderImageGallery() {
 
 function switchView(view) {
     viewProducts.hidden = view !== 'products';
+    viewOrders.hidden = view !== 'orders';
     viewContacts.hidden = view !== 'contacts';
     viewShipping.hidden = view !== 'shipping';
-    [tabProducts, tabContacts, tabShipping].forEach((tab) => {
+    [tabProducts, tabOrders, tabContacts, tabShipping].forEach((tab) => {
         if (!tab) return;
         const active = tab.dataset.view === view;
         tab.classList.toggle('is-active', active);
@@ -298,6 +302,111 @@ function renderProducts(products) {
     }).join('');
 }
 
+function orderStatusLabel(status) {
+    if (status === 'paid') return 'Betaald';
+    if (status === 'cancelled') return 'Geannuleerd';
+    return 'Open';
+}
+
+function paymentMethodLabel(method) {
+    if (method === 'crypto') return 'Crypto';
+    if (method === 'bunq') return 'iDEAL / bunq';
+    return method || '—';
+}
+
+function formatAddress(address) {
+    if (!address || typeof address !== 'object') return '';
+    const parts = [
+        address.line1,
+        address.line2,
+        [address.postalCode, address.city].filter(Boolean).join(' '),
+        address.country
+    ].filter(Boolean);
+    return parts.join(', ');
+}
+
+function renderOrders(orders) {
+    const sorted = [...orders].sort((a, b) => {
+        return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+    });
+    const pendingCount = sorted.filter((o) => o.status === 'pending').length;
+
+    ordersTotal.textContent = `${sorted.length} bestelling${sorted.length !== 1 ? 'en' : ''}` +
+        (pendingCount ? ` · ${pendingCount} open` : '');
+
+    if (pendingCount > 0) {
+        ordersBadge.hidden = false;
+        ordersBadge.textContent = String(pendingCount);
+    } else {
+        ordersBadge.hidden = true;
+    }
+
+    if (!sorted.length) {
+        ordersTbody.innerHTML = '<tr><td colspan="6">Nog geen bestellingen.</td></tr>';
+        return;
+    }
+
+    ordersTbody.innerHTML = sorted.map((o) => {
+        const status = o.status || 'pending';
+        const statusClass = status === 'paid'
+            ? 'is-paid'
+            : status === 'cancelled'
+                ? 'is-cancelled'
+                : 'is-pending';
+        const items = Array.isArray(o.items) ? o.items : [];
+        const itemsHtml = items.length
+            ? `<ul class="order-items-list">${items.map((item) => `
+                <li>
+                    ${escapeHtml(item.title || 'Product')}
+                    × ${Number(item.quantity) || 1}
+                    <span class="order-meta">${formatEuro(item.lineTotal ?? (item.price * item.quantity))}</span>
+                </li>
+            `).join('')}</ul>`
+            : '<span class="order-meta">Geen producten</span>';
+
+        const customer = o.customer || {};
+        const address = formatAddress(customer.address);
+        const paidLine = o.paidAt
+            ? `<div class="order-meta">Betaald: ${escapeHtml(formatDateTime(o.paidAt))}</div>`
+            : '';
+        const phoneLine = customer.phone
+            ? `<div class="order-meta"><a href="tel:${escapeHtml(customer.phone)}">${escapeHtml(customer.phone)}</a></div>`
+            : '';
+
+        return `
+        <tr data-order-id="${escapeHtml(o.id)}">
+            <td data-label="Datum">
+                ${escapeHtml(formatDateTime(o.createdAt))}
+                <div class="order-meta">#${escapeHtml(String(o.id || '').slice(0, 8))}</div>
+            </td>
+            <td data-label="Klant">
+                <strong>${escapeHtml(customer.name || '—')}</strong>
+                <div class="order-meta"><a href="mailto:${escapeHtml(customer.email || '')}">${escapeHtml(customer.email || '')}</a></div>
+                ${phoneLine}
+                ${address ? `<div class="order-meta">${escapeHtml(address)}</div>` : ''}
+            </td>
+            <td data-label="Producten">${itemsHtml}</td>
+            <td data-label="Totaal">
+                <strong>${formatEuro(o.total)}</strong>
+                <div class="order-meta">${escapeHtml(paymentMethodLabel(o.paymentMethod))}</div>
+                ${o.shipping ? `<div class="order-meta">Verzending ${formatEuro(o.shipping)}</div>` : ''}
+            </td>
+            <td data-label="Status">
+                <span class="contact-status order-status ${statusClass}">${orderStatusLabel(status)}</span>
+                ${paidLine}
+            </td>
+            <td class="admin-cell-actions" data-label="">
+                <div class="admin-row-actions">
+                    ${status !== 'paid' ? '<button type="button" class="btn-secondary btn-order-paid">Markeer betaald</button>' : ''}
+                    ${status === 'pending' ? '<button type="button" class="btn-danger btn-order-cancel">Annuleren</button>' : ''}
+                    ${status === 'cancelled' ? '<button type="button" class="btn-secondary btn-order-reopen">Heropen</button>' : ''}
+                </div>
+            </td>
+        </tr>
+        `;
+    }).join('');
+}
+
 function renderContacts(contacts) {
     const newCount = contacts.filter((c) => c.status !== 'done').length;
     contactsTotal.textContent = `${contacts.length} bericht${contacts.length !== 1 ? 'en' : ''}` +
@@ -376,6 +485,12 @@ async function loadContacts() {
     return contacts;
 }
 
+async function loadOrders() {
+    const orders = await api('/api/admin/orders');
+    renderOrders(orders);
+    return orders;
+}
+
 function fillShippingForm(settings) {
     document.getElementById('ship-fee-domestic').value = settings.feeDomestic;
     document.getElementById('ship-fee-international').value = settings.feeInternational;
@@ -390,7 +505,7 @@ async function loadShipping() {
 }
 
 async function loadDashboard() {
-    await Promise.all([loadProducts(), loadContacts(), loadShipping()]);
+    await Promise.all([loadProducts(), loadOrders(), loadContacts(), loadShipping()]);
 }
 
 loginForm.addEventListener('submit', async (e) => {
@@ -425,6 +540,10 @@ document.getElementById('btn-logout').addEventListener('click', async () => {
 });
 
 tabProducts.addEventListener('click', () => switchView('products'));
+tabOrders.addEventListener('click', () => {
+    switchView('orders');
+    loadOrders().catch(() => {});
+});
 tabShipping.addEventListener('click', () => {
     switchView('shipping');
     loadShipping().catch((err) => setStatus(shippingStatus, err.message, 'error'));
@@ -452,26 +571,6 @@ shippingForm.addEventListener('submit', async (e) => {
         setStatus(shippingStatus, 'Verzendkosten opgeslagen.', 'ok');
     } catch (err) {
         setStatus(shippingStatus, err.message, 'error');
-    }
-});
-
-emailTestForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    setStatus(emailTestStatus, 'Testmail versturen…');
-    try {
-        const to = document.getElementById('email-test-to').value.trim();
-        const data = await api('/api/admin/test-email', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(to ? { to } : {})
-        });
-        setStatus(
-            emailTestStatus,
-            `Verstuurd naar ${data.to} via ${data.provider || data.host || 'mail'}.`,
-            'ok'
-        );
-    } catch (err) {
-        setStatus(emailTestStatus, err.message, 'error');
     }
 });
 
@@ -642,6 +741,34 @@ tbody.addEventListener('click', async (e) => {
         } catch (err) {
             alert(err.message);
         }
+    }
+});
+
+ordersTbody.addEventListener('click', async (e) => {
+    const row = e.target.closest('tr[data-order-id]');
+    if (!row) return;
+    const id = row.dataset.orderId;
+
+    let status = null;
+    if (e.target.classList.contains('btn-order-paid')) {
+        status = 'paid';
+    } else if (e.target.classList.contains('btn-order-cancel')) {
+        if (!confirm('Deze bestelling annuleren?')) return;
+        status = 'cancelled';
+    } else if (e.target.classList.contains('btn-order-reopen')) {
+        status = 'pending';
+    }
+    if (!status) return;
+
+    try {
+        await api(`/api/admin/orders/${encodeURIComponent(id)}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status })
+        });
+        await loadOrders();
+    } catch (err) {
+        alert(err.message);
     }
 });
 

@@ -524,11 +524,11 @@ img {
 }
 
 .game-card.pokemon { --game-accent: #ef4444; background: #fff8f7; }
-.game-card.yugioh { --game-accent: #d97706; background: #fffaf0; }
-.game-card.mtg { --game-accent: #6366f1; background: #f6f5ff; }
-.game-card.lorcana { --game-accent: #0891b2; background: #f2fbfd; }
-.game-card.onepiece { --game-accent: #2563eb; background: #f3f7ff; }
+.game-card.boxen { --game-accent: #d97706; background: #fffaf0; }
+.game-card.boosters { --game-accent: #0891b2; background: #f2fbfd; }
+.game-card.singles { --game-accent: #2563eb; background: #f3f7ff; }
 .game-card.accessories { --game-accent: #64748b; background: #f7f7f5; }
+.game-card.lego { --game-accent: #ca8a04; background: #fffbeb; }
 
 /* --- Products --- */
 .shop-section {
@@ -1089,6 +1089,18 @@ img {
     background: #ecfdf5;
     color: #065f46;
     border: 1px solid #a7f3d0;
+}
+
+.product-stock.low-stock {
+    background: #fff7ed;
+    color: #9a3412;
+    border: 1px solid #fed7aa;
+}
+
+.product-stock.out-of-stock {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
 }
 
 .product-stock.preorder {

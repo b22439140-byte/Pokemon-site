@@ -471,6 +471,39 @@
             color: #15803d;
         }
 
+        .order-status.is-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .order-status.is-paid {
+            background: #ecfdf5;
+            color: #15803d;
+        }
+
+        .order-status.is-cancelled {
+            background: #f3f4f6;
+            color: #4b5563;
+        }
+
+        .order-items-list {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            font-size: 0.88rem;
+            line-height: 1.4;
+        }
+
+        .order-items-list li + li {
+            margin-top: 0.35rem;
+        }
+
+        .order-meta {
+            color: var(--muted);
+            font-size: 0.82rem;
+            margin-top: 0.2rem;
+        }
+
         .contact-product-chip {
             display: inline-flex;
             align-items: center;
@@ -700,7 +733,7 @@
             <div class="admin-header">
                 <div>
                     <h1>Dashboard</h1>
-                    <p>Beheer producten, verzendkosten en contactaanvragen.</p>
+                    <p>Beheer producten, bestellingen, verzendkosten en contactaanvragen.</p>
                 </div>
                 <div class="admin-actions">
                     <button type="button" class="btn-secondary" id="btn-logout">Uitloggen</button>
@@ -710,6 +743,10 @@
             <div class="admin-tabs" role="tablist" aria-label="Dashboard secties">
                 <button type="button" class="admin-tab is-active" id="tab-products" data-view="products" role="tab" aria-selected="true">
                     Producten
+                </button>
+                <button type="button" class="admin-tab" id="tab-orders" data-view="orders" role="tab" aria-selected="false">
+                    Bestellingen
+                    <span class="admin-tab-badge" id="orders-badge" hidden>0</span>
                 </button>
                 <button type="button" class="admin-tab" id="tab-shipping" data-view="shipping" role="tab" aria-selected="false">
                     Verzending
@@ -813,8 +850,9 @@
                 </label>
 
                 <label>
-                    Max. aantal
-                    <input type="number" id="field-max-qty" min="1" step="1" value="10">
+                    Voorraad (aantal)
+                    <input type="number" id="field-max-qty" min="0" step="1" value="10">
+                    <span class="hint">Wordt getoond op de productpagina als “nog X beschikbaar”.</span>
                 </label>
 
                 <label>
@@ -911,24 +949,32 @@
                         <p class="admin-status" id="shipping-status" role="status"></p>
                     </div>
                 </form>
+            </div>
 
-                <div class="admin-header" style="margin:2rem 0 1.25rem">
+            <div id="view-orders" class="admin-view" hidden>
+                <div class="admin-header" style="margin-bottom:1.25rem">
                     <div>
-                        <h2 style="font-family:Syne,sans-serif;font-size:1.35rem;letter-spacing:-0.02em">E-mail test</h2>
-                        <p>Test order-mails (Resend of SMTP). Contactaanvragen blijven in Admin.</p>
+                        <h2 style="font-family:Syne,sans-serif;font-size:1.35rem;letter-spacing:-0.02em">Bestellingen</h2>
+                        <p id="orders-total">Laden…</p>
                     </div>
                 </div>
-                <form id="email-test-form" class="admin-form">
-                    <label class="full">
-                        Ontvanger (optioneel)
-                        <input type="email" id="email-test-to" placeholder="Laat leeg voor MAIL_NOTIFY_TO">
-                        <span class="hint">Gebruikt RESEND_API_KEY (aanbevolen) of SMTP_* van Render</span>
-                    </label>
-                    <div class="full form-actions">
-                        <button type="submit" class="btn-admin" id="btn-test-email">Stuur testmail</button>
-                        <p class="admin-status" id="email-test-status" role="status"></p>
-                    </div>
-                </form>
+                <div class="admin-table-wrap">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Datum</th>
+                                <th>Klant</th>
+                                <th>Producten</th>
+                                <th>Totaal</th>
+                                <th>Status</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="orders-tbody">
+                            <tr><td colspan="6">Laden…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <div id="view-contacts" class="admin-view" hidden>

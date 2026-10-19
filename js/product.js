@@ -54,9 +54,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     const images = getProductImages(product);
     const mainImage = images[0] || product.image || '';
 
-    const stockLabel = product.badge === 'preorder'
-        ? 'Pre-order — reserveer nu'
-        : 'Op voorraad — vandaag verwerkt';
+    const stockLeft = Number.isFinite(Number(product.maxQty)) && Number(product.maxQty) > 0
+        ? Math.floor(Number(product.maxQty))
+        : 0;
+    const isOutOfStock = product.inStock === false || stockLeft === 0;
+    let stockClass = 'in-stock';
+    let stockLabel = 'Op voorraad';
+
+    if (product.badge === 'preorder') {
+        stockClass = 'preorder';
+        stockLabel = stockLeft > 0
+            ? `Pre-order — nog ${stockLeft} beschikbaar`
+            : 'Pre-order — reserveer nu';
+    } else if (isOutOfStock) {
+        stockClass = 'out-of-stock';
+        stockLabel = 'Uitverkocht';
+    } else if (stockLeft <= 3) {
+        stockClass = 'low-stock';
+        stockLabel = stockLeft === 1
+            ? 'Nog 1 op voorraad'
+            : `Nog ${stockLeft} op voorraad`;
+    } else {
+        stockLabel = `Op voorraad — nog ${stockLeft} beschikbaar`;
+    }
 
     const conditionNote = product.condition
         ? `<div class="product-authenticity">
@@ -109,7 +129,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <span class="product-rating-text"><strong>9,4/10</strong> · 847 reviews op Trustpilot</span>
                 </div>
 
-                <div class="product-stock ${product.badge === 'preorder' ? 'preorder' : 'in-stock'}">${stockLabel}</div>
+                <div class="product-stock ${stockClass}">${stockLabel}</div>
 
                 <div class="product-price-row">
                     <span class="price-current">${formatEuro(product.price)}</span>
