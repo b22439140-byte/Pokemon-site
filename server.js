@@ -30,7 +30,7 @@ try {
 }
 
 const { createBunqClient } = require('./lib/bunq');
-const email = require('./lib/email');
+const mailer = require('./lib/email');
 
 const PORT = process.env.PORT || 3000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'pokevault';
@@ -40,28 +40,21 @@ const BUNQ_API_KEY = String(process.env.BUNQ_API_KEY || '').trim();
 const BUNQ_SANDBOX = /^(1|true|yes)$/i.test(String(process.env.BUNQ_SANDBOX || '').trim());
 const BUNQ_MONETARY_ACCOUNT_ID = String(process.env.BUNQ_MONETARY_ACCOUNT_ID || '').trim();
 const PUBLIC_BASE_URL = String(process.env.PUBLIC_BASE_URL || '').trim().replace(/\/$/, '');
-// Shipping — change via .env (see .env.example) or the defaults below.
+// Shipping defaults — used until an admin saves settings (or as fallback).
+// Optional .env overrides only apply before the first admin save.
 function envMoney(name, fallback) {
     const raw = process.env[name];
     if (raw == null || String(raw).trim() === '') return fallback;
     const n = Number(String(raw).trim().replace(',', '.'));
     return Number.isFinite(n) && n >= 0 ? n : fallback;
 }
-const SHIPPING_FEE_DOMESTIC = envMoney('SHIPPING_FEE_DOMESTIC', 6.95);
-const SHIPPING_FEE_INTERNATIONAL = envMoney('SHIPPING_FEE_INTERNATIONAL', 14.95);
-const FREE_SHIPPING_FROM_DOMESTIC = envMoney('FREE_SHIPPING_FROM_DOMESTIC', 100);
-const FREE_SHIPPING_FROM_INTERNATIONAL = envMoney('FREE_SHIPPING_FROM_INTERNATIONAL', 150);
+const DEFAULT_SHIPPING = {
+    feeDomestic: envMoney('SHIPPING_FEE_DOMESTIC', 6.95),
+    feeInternational: envMoney('SHIPPING_FEE_INTERNATIONAL', 14.95),
+    freeFromDomestic: envMoney('FREE_SHIPPING_FROM_DOMESTIC', 100),
+    freeFromInternational: envMoney('FREE_SHIPPING_FROM_INTERNATIONAL', 150)
+};
 const DOMESTIC_COUNTRIES = new Set(['NL', 'BE']);
-
-function publicShippingConfig() {
-    return {
-        feeDomestic: SHIPPING_FEE_DOMESTIC,
-        feeInternational: SHIPPING_FEE_INTERNATIONAL,
-        freeFromDomestic: FREE_SHIPPING_FROM_DOMESTIC,
-        freeFromInternational: FREE_SHIPPING_FROM_INTERNATIONAL,
-        domesticCountries: [...DOMESTIC_COUNTRIES]
-    };
-}
 const ALLOWED_COUNTRIES = new Set([
     'NL', 'BE', 'DE', 'AT', 'FR', 'LU', 'GB', 'IE', 'IT', 'ES', 'PT', 'PL',
     'SE', 'NO', 'DK', 'FI', 'CH', 'US', 'CA', 'AU', 'JP', 'SG', 'OTHER'
@@ -69,13 +62,6 @@ const ALLOWED_COUNTRIES = new Set([
 const CRYPTO_WALLET_ADDRESS = String(process.env.CRYPTO_WALLET_ADDRESS || '').trim();
 const CRYPTO_WALLET_NETWORK = String(process.env.CRYPTO_WALLET_NETWORK || 'BTC / ETH / USDT').trim();
 
-function shippingFor(subtotal, countryCode) {
-    const country = String(countryCode || 'NL').toUpperCase();
-    if (DOMESTIC_COUNTRIES.has(country)) {
-        return subtotal >= FREE_SHIPPING_FROM_DOMESTIC ? 0 : SHIPPING_FEE_DOMESTIC;
-    }
-    return subtotal >= FREE_SHIPPING_FROM_INTERNATIONAL ? 0 : SHIPPING_FEE_INTERNATIONAL;
-}
 const SEED_FILE = path.join(__dirname, 'data', 'products.json');
 
 function resolvePersistDir() {
@@ -100,7 +86,58 @@ const PERSIST_DIR = resolvePersistDir();
 const DATA_FILE = path.join(PERSIST_DIR, 'products.json');
 const CONTACTS_FILE = path.join(PERSIST_DIR, 'contacts.json');
 const ORDERS_FILE = path.join(PERSIST_DIR, 'orders.json');
+const SHIPPING_FILE = path.join(PERSIST_DIR, 'shipping.json');
 const UPLOADS_DIR = path.join(PERSIST_DIR, 'uploads');
+
+function moneyOrDefault(value, fallback) {
+    const n = Number(String(value ?? '').trim().replace(',', '.'));
+    return Number.isFinite(n) && n >= 0 ? n : fallback;
+}
+
+function normalizeShipping(raw) {
+    return {
+        feeDomestic: moneyOrDefault(raw?.feeDomestic, DEFAULT_SHIPPING.feeDomestic),
+        feeInternational: moneyOrDefault(raw?.feeInternational, DEFAULT_SHIPPING.feeInternational),
+        freeFromDomestic: moneyOrDefault(raw?.freeFromDomestic, DEFAULT_SHIPPING.freeFromDomestic),
+        freeFromInternational: moneyOrDefault(
+            raw?.freeFromInternational,
+            DEFAULT_SHIPPING.freeFromInternational
+        )
+    };
+}
+
+function readShippingSettings() {
+    try {
+        if (fs.existsSync(SHIPPING_FILE)) {
+            return normalizeShipping(JSON.parse(fs.readFileSync(SHIPPING_FILE, 'utf8')));
+        }
+    } catch (_) {
+        /* fall through to defaults */
+    }
+    return { ...DEFAULT_SHIPPING };
+}
+
+function writeShippingSettings(raw) {
+    const settings = normalizeShipping(raw);
+    fs.writeFileSync(SHIPPING_FILE, JSON.stringify(settings, null, 2));
+    return settings;
+}
+
+function publicShippingConfig() {
+    return {
+        ...readShippingSettings(),
+        domesticCountries: [...DOMESTIC_COUNTRIES]
+    };
+}
+
+function shippingFor(subtotal, countryCode) {
+    const settings = readShippingSettings();
+    const country = String(countryCode || 'NL').toUpperCase();
+    if (DOMESTIC_COUNTRIES.has(country)) {
+        return subtotal >= settings.freeFromDomestic ? 0 : settings.feeDomestic;
+    }
+    return subtotal >= settings.freeFromInternational ? 0 : settings.feeInternational;
+}
 
 let bunqClient = null;
 function getBunqClient() {
@@ -883,7 +920,7 @@ app.post('/api/checkout', async (req, res) => {
         writeOrders(orders);
 
         try {
-            await email.notifyOrderPlaced(order, { orderUrl });
+            await mailer.notifyOrderPlaced(order, { orderUrl });
             orders[0] = order;
             writeOrders(orders);
         } catch (err) {
@@ -923,9 +960,9 @@ app.patch('/api/admin/orders/:id', requireAdmin, async (req, res) => {
     }
 
     if (status === 'paid' && previousStatus !== 'paid') {
-        const orderUrl = email.orderPageUrl(orders[index], resolvePublicBaseUrl(req));
+        const orderUrl = mailer.orderPageUrl(orders[index], resolvePublicBaseUrl(req));
         try {
-            await email.notifyOrderPaid(orders[index], { orderUrl });
+            await mailer.notifyOrderPaid(orders[index], { orderUrl });
         } catch (err) {
             console.error('Betalingsbevestiging e-mail mislukt:', err.message || err);
         }
@@ -952,9 +989,9 @@ app.get('/api/orders/:id', async (req, res) => {
                 writeOrders(orders);
 
                 if (!wasPaid && order.status === 'paid') {
-                    const orderUrl = email.orderPageUrl(order, resolvePublicBaseUrl(req));
+                    const orderUrl = mailer.orderPageUrl(order, resolvePublicBaseUrl(req));
                     try {
-                        await email.notifyOrderPaid(order, { orderUrl });
+                        await mailer.notifyOrderPaid(order, { orderUrl });
                         orders[index] = order;
                         writeOrders(orders);
                     } catch (err) {
@@ -1006,6 +1043,50 @@ app.delete('/api/admin/contacts/:id', requireAdmin, (req, res) => {
 
 app.get('/api/shipping', (_req, res) => {
     res.json(publicShippingConfig());
+});
+
+app.get('/api/admin/shipping', requireAdmin, (_req, res) => {
+    res.json(publicShippingConfig());
+});
+
+app.put('/api/admin/shipping', requireAdmin, (req, res) => {
+    try {
+        const body = req.body || {};
+        const required = [
+            'feeDomestic',
+            'feeInternational',
+            'freeFromDomestic',
+            'freeFromInternational'
+        ];
+        for (const key of required) {
+            const n = Number(String(body[key] ?? '').trim().replace(',', '.'));
+            if (!Number.isFinite(n) || n < 0) {
+                return res.status(400).json({
+                    error: `Ongeldige waarde voor ${key}. Gebruik een getal van 0 of hoger.`
+                });
+            }
+        }
+        const settings = writeShippingSettings(body);
+        res.json({
+            ...settings,
+            domesticCountries: [...DOMESTIC_COUNTRIES]
+        });
+    } catch (err) {
+        res.status(400).json({ error: err.message || 'Kon verzendkosten niet opslaan.' });
+    }
+});
+
+app.post('/api/admin/test-email', requireAdmin, async (req, res) => {
+    try {
+        const to = String(req.body?.to || '').trim();
+        const result = await mailer.sendTestEmail(to || undefined);
+        if (!result.ok) {
+            return res.status(400).json(result);
+        }
+        res.json(result);
+    } catch (err) {
+        res.status(400).json({ ok: false, error: err.message || 'Testmail mislukt.' });
+    }
 });
 
 app.get('/api/health', (_req, res) => {
@@ -1101,7 +1182,7 @@ app.listen(PORT, () => {
     } else {
         console.log('bunq checkout: uit — stel BUNQ_API_KEY in om betalingen te activeren');
     }
-    if (email.isConfigured()) {
+    if (mailer.isConfigured()) {
         console.log('Order e-mails: aan (SMTP geconfigureerd)');
     } else {
         console.log('Order e-mails: uit — stel SMTP_HOST, SMTP_USER, SMTP_PASS en MAIL_FROM in');

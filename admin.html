@@ -700,7 +700,7 @@
             <div class="admin-header">
                 <div>
                     <h1>Dashboard</h1>
-                    <p>Beheer producten en bekijk contactaanvragen.</p>
+                    <p>Beheer producten, verzendkosten en contactaanvragen.</p>
                 </div>
                 <div class="admin-actions">
                     <button type="button" class="btn-secondary" id="btn-logout">Uitloggen</button>
@@ -710,6 +710,9 @@
             <div class="admin-tabs" role="tablist" aria-label="Dashboard secties">
                 <button type="button" class="admin-tab is-active" id="tab-products" data-view="products" role="tab" aria-selected="true">
                     Producten
+                </button>
+                <button type="button" class="admin-tab" id="tab-shipping" data-view="shipping" role="tab" aria-selected="false">
+                    Verzending
                 </button>
                 <button type="button" class="admin-tab" id="tab-contacts" data-view="contacts" role="tab" aria-selected="false">
                     Contactaanvragen
@@ -876,6 +879,56 @@
                     </tbody>
                 </table>
             </div>
+            </div>
+
+            <div id="view-shipping" class="admin-view" hidden>
+                <div class="admin-header" style="margin-bottom:1.25rem">
+                    <div>
+                        <h2 style="font-family:Syne,sans-serif;font-size:1.35rem;letter-spacing:-0.02em">Verzendkosten</h2>
+                        <p>Pas tarieven aan. Wijzigingen gelden meteen voor nieuwe bestellingen.</p>
+                    </div>
+                </div>
+                <form id="shipping-form" class="admin-form">
+                    <label>
+                        Verzendkosten NL/BE (€)
+                        <input type="number" id="ship-fee-domestic" min="0" step="0.01" required>
+                        <span class="hint">Zet op 0 voor gratis verzending binnen NL/BE.</span>
+                    </label>
+                    <label>
+                        Gratis verzending vanaf NL/BE (€)
+                        <input type="number" id="ship-free-domestic" min="0" step="0.01" required>
+                    </label>
+                    <label>
+                        Internationale verzendkosten (€)
+                        <input type="number" id="ship-fee-international" min="0" step="0.01" required>
+                    </label>
+                    <label>
+                        Gratis internationaal vanaf (€)
+                        <input type="number" id="ship-free-international" min="0" step="0.01" required>
+                    </label>
+                    <div class="full form-actions">
+                        <button type="submit" class="btn-admin" id="btn-save-shipping">Verzendkosten opslaan</button>
+                        <p class="admin-status" id="shipping-status" role="status"></p>
+                    </div>
+                </form>
+
+                <div class="admin-header" style="margin:2rem 0 1.25rem">
+                    <div>
+                        <h2 style="font-family:Syne,sans-serif;font-size:1.35rem;letter-spacing:-0.02em">E-mail test</h2>
+                        <p>Controleer of SMTP (Strato) werkt. Stuurt een testmail via de serverinstellingen.</p>
+                    </div>
+                </div>
+                <form id="email-test-form" class="admin-form">
+                    <label class="full">
+                        Ontvanger (optioneel)
+                        <input type="email" id="email-test-to" placeholder="Laat leeg voor MAIL_NOTIFY_TO">
+                        <span class="hint">Gebruikt SMTP_USER / SMTP_PASS van Render of .env</span>
+                    </label>
+                    <div class="full form-actions">
+                        <button type="submit" class="btn-admin" id="btn-test-email">Stuur testmail</button>
+                        <p class="admin-status" id="email-test-status" role="status"></p>
+                    </div>
+                </form>
             </div>
 
             <div id="view-contacts" class="admin-view" hidden>

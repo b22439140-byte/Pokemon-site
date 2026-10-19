@@ -18,8 +18,14 @@ const aiScanStatus = document.getElementById('ai-scan-status');
 const btnAiScan = document.getElementById('btn-ai-scan');
 const viewProducts = document.getElementById('view-products');
 const viewContacts = document.getElementById('view-contacts');
+const viewShipping = document.getElementById('view-shipping');
 const tabProducts = document.getElementById('tab-products');
 const tabContacts = document.getElementById('tab-contacts');
+const tabShipping = document.getElementById('tab-shipping');
+const shippingForm = document.getElementById('shipping-form');
+const shippingStatus = document.getElementById('shipping-status');
+const emailTestForm = document.getElementById('email-test-form');
+const emailTestStatus = document.getElementById('email-test-status');
 
 /** @type {string[]} */
 let keptImages = [];
@@ -183,13 +189,15 @@ function renderImageGallery() {
 }
 
 function switchView(view) {
-    const isProducts = view === 'products';
-    viewProducts.hidden = !isProducts;
-    viewContacts.hidden = isProducts;
-    tabProducts.classList.toggle('is-active', isProducts);
-    tabContacts.classList.toggle('is-active', !isProducts);
-    tabProducts.setAttribute('aria-selected', String(isProducts));
-    tabContacts.setAttribute('aria-selected', String(!isProducts));
+    viewProducts.hidden = view !== 'products';
+    viewContacts.hidden = view !== 'contacts';
+    viewShipping.hidden = view !== 'shipping';
+    [tabProducts, tabContacts, tabShipping].forEach((tab) => {
+        if (!tab) return;
+        const active = tab.dataset.view === view;
+        tab.classList.toggle('is-active', active);
+        tab.setAttribute('aria-selected', String(active));
+    });
 }
 
 function formatDateTime(iso) {
@@ -368,8 +376,21 @@ async function loadContacts() {
     return contacts;
 }
 
+function fillShippingForm(settings) {
+    document.getElementById('ship-fee-domestic').value = settings.feeDomestic;
+    document.getElementById('ship-fee-international').value = settings.feeInternational;
+    document.getElementById('ship-free-domestic').value = settings.freeFromDomestic;
+    document.getElementById('ship-free-international').value = settings.freeFromInternational;
+}
+
+async function loadShipping() {
+    const settings = await api('/api/admin/shipping');
+    fillShippingForm(settings);
+    return settings;
+}
+
 async function loadDashboard() {
-    await Promise.all([loadProducts(), loadContacts()]);
+    await Promise.all([loadProducts(), loadContacts(), loadShipping()]);
 }
 
 loginForm.addEventListener('submit', async (e) => {
@@ -404,9 +425,54 @@ document.getElementById('btn-logout').addEventListener('click', async () => {
 });
 
 tabProducts.addEventListener('click', () => switchView('products'));
+tabShipping.addEventListener('click', () => {
+    switchView('shipping');
+    loadShipping().catch((err) => setStatus(shippingStatus, err.message, 'error'));
+});
 tabContacts.addEventListener('click', () => {
     switchView('contacts');
     loadContacts().catch(() => {});
+});
+
+shippingForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    setStatus(shippingStatus, 'Opslaan…');
+    try {
+        const settings = await api('/api/admin/shipping', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                feeDomestic: document.getElementById('ship-fee-domestic').value,
+                feeInternational: document.getElementById('ship-fee-international').value,
+                freeFromDomestic: document.getElementById('ship-free-domestic').value,
+                freeFromInternational: document.getElementById('ship-free-international').value
+            })
+        });
+        fillShippingForm(settings);
+        setStatus(shippingStatus, 'Verzendkosten opgeslagen.', 'ok');
+    } catch (err) {
+        setStatus(shippingStatus, err.message, 'error');
+    }
+});
+
+emailTestForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    setStatus(emailTestStatus, 'Testmail versturen…');
+    try {
+        const to = document.getElementById('email-test-to').value.trim();
+        const data = await api('/api/admin/test-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(to ? { to } : {})
+        });
+        setStatus(
+            emailTestStatus,
+            `Verstuurd naar ${data.to} (via ${data.user} @ ${data.host}).`,
+            'ok'
+        );
+    } catch (err) {
+        setStatus(emailTestStatus, err.message, 'error');
+    }
 });
 
 document.getElementById('btn-new').addEventListener('click', () => openForm(null));
