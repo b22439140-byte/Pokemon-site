@@ -467,7 +467,7 @@ emailTestForm.addEventListener('submit', async (e) => {
         });
         setStatus(
             emailTestStatus,
-            `Verstuurd naar ${data.to} (via ${data.user} @ ${data.host}).`,
+            `Verstuurd naar ${data.to} via ${data.provider || data.host || 'mail'}.`,
             'ok'
         );
     } catch (err) {

@@ -1183,8 +1183,8 @@ app.listen(PORT, () => {
         console.log('bunq checkout: uit — stel BUNQ_API_KEY in om betalingen te activeren');
     }
     if (mailer.isConfigured()) {
-        console.log('Order e-mails: aan (SMTP geconfigureerd)');
+        console.log(`Order e-mails: aan (${mailer.providerName()})`);
     } else {
-        console.log('Order e-mails: uit — stel SMTP_HOST, SMTP_USER, SMTP_PASS en MAIL_FROM in');
+        console.log('Order e-mails: uit — stel RESEND_API_KEY + MAIL_FROM in (of SMTP_*)');
     }
 });

@@ -915,14 +915,14 @@
                 <div class="admin-header" style="margin:2rem 0 1.25rem">
                     <div>
                         <h2 style="font-family:Syne,sans-serif;font-size:1.35rem;letter-spacing:-0.02em">E-mail test</h2>
-                        <p>Controleer of SMTP (Strato) werkt. Stuurt een testmail via de serverinstellingen.</p>
+                        <p>Test order-mails (Resend of SMTP). Contactaanvragen blijven in Admin.</p>
                     </div>
                 </div>
                 <form id="email-test-form" class="admin-form">
                     <label class="full">
                         Ontvanger (optioneel)
                         <input type="email" id="email-test-to" placeholder="Laat leeg voor MAIL_NOTIFY_TO">
-                        <span class="hint">Gebruikt SMTP_USER / SMTP_PASS van Render of .env</span>
+                        <span class="hint">Gebruikt RESEND_API_KEY (aanbevolen) of SMTP_* van Render</span>
                     </label>
                     <div class="full form-actions">
                         <button type="submit" class="btn-admin" id="btn-test-email">Stuur testmail</button>
