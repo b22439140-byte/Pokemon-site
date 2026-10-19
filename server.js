@@ -8,7 +8,7 @@ const crypto = require('crypto');
 try {
     const envPath = path.join(__dirname, '.env');
     if (fs.existsSync(envPath)) {
-        for (const line of fs.readFileSync(envPath, 'utf8').split(/\n')) {
+        for (const line of fs.readFileSync(envPath, 'utf8').split('\n')) {
             const trimmed = line.trim();
             if (!trimmed || trimmed.startsWith('#')) continue;
             const eq = trimmed.indexOf('=');
