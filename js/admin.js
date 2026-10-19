@@ -439,22 +439,18 @@ function renderOrders() {
         const status = o.status || 'pending';
         const normalized = normalizeOrderStatus(status);
         const items = Array.isArray(o.items) ? o.items : [];
+        const shownItems = items.slice(0, 2);
+        const extraCount = items.length - shownItems.length;
         const itemsHtml = items.length
-            ? `<ul class="order-items-list">${items.map((item) => `
-                <li>
-                    <span class="order-item-title">${escapeHtml(item.title || 'Product')} × ${Number(item.quantity) || 1}</span>
-                    <span class="order-item-price">${formatEuro(item.lineTotal ?? (item.price * item.quantity))}</span>
-                </li>
-            `).join('')}</ul>`
+            ? `<ul class="order-items-list">${shownItems.map((item) => `
+                <li title="${escapeHtml(item.title || 'Product')}">${escapeHtml(item.title || 'Product')} × ${Number(item.quantity) || 1}</li>
+            `).join('')}${extraCount > 0 ? `<li class="order-items-more">+${extraCount} meer</li>` : ''}</ul>`
             : '<div class="order-meta">Geen producten</div>';
 
         const customer = o.customer || {};
         const address = formatAddress(customer.address);
-        const paidLine = o.paidAt
-            ? `<div class="order-meta">Betaald: ${escapeHtml(formatDateTime(o.paidAt))}</div>`
-            : '';
-        const phoneLine = customer.phone
-            ? `<div class="order-meta"><a href="tel:${escapeHtml(customer.phone)}">${escapeHtml(customer.phone)}</a></div>`
+        const cityLine = customer.address && typeof customer.address === 'object'
+            ? [customer.address.postalCode, customer.address.city].filter(Boolean).join(' ')
             : '';
 
         const actions = [];
@@ -469,30 +465,24 @@ function renderOrders() {
         }
 
         return `
-        <article class="order-card" data-order-id="${escapeHtml(o.id)}">
+        <article class="order-card" data-order-id="${escapeHtml(o.id)}" title="${escapeHtml(address)}">
             <div class="order-card-block">
-                <div class="order-card-head">
-                    <span class="order-card-id">#${escapeHtml(String(o.id || '').slice(0, 8))}</span>
-                    <span class="contact-status order-status ${orderStatusClass(status)}">${orderStatusLabel(status)}</span>
-                </div>
+                <div class="order-card-id">#${escapeHtml(String(o.id || '').slice(0, 8))}</div>
                 <div class="order-meta">${escapeHtml(formatDateTime(o.createdAt))}</div>
-                ${paidLine}
-                <div class="order-card-label order-card-label-spaced">Klant</div>
-                <strong>${escapeHtml(customer.name || '—')}</strong>
-                <div class="order-meta"><a href="mailto:${escapeHtml(customer.email || '')}">${escapeHtml(customer.email || '')}</a></div>
-                ${phoneLine}
-                ${address ? `<div class="order-meta">${escapeHtml(address)}</div>` : ''}
             </div>
             <div class="order-card-block">
-                <span class="order-card-label">Producten</span>
-                ${itemsHtml}
+                <strong title="${escapeHtml(customer.name || '')}">${escapeHtml(customer.name || '—')}</strong>
+                <div class="order-meta"><a href="mailto:${escapeHtml(customer.email || '')}">${escapeHtml(customer.email || '')}</a>${cityLine ? ` · ${escapeHtml(cityLine)}` : ''}</div>
+            </div>
+            <div class="order-card-block">${itemsHtml}</div>
+            <div class="order-card-total">
+                <strong>${formatEuro(o.total)}</strong>
+                <div class="order-meta">${escapeHtml(paymentMethodLabel(o.paymentMethod))}</div>
+            </div>
+            <div class="order-card-block">
+                <span class="contact-status order-status ${orderStatusClass(status)}">${orderStatusLabel(status)}</span>
             </div>
             <div class="order-card-aside">
-                <div class="order-card-total">
-                    <strong>${formatEuro(o.total)}</strong>
-                    <div class="order-meta">${escapeHtml(paymentMethodLabel(o.paymentMethod))}</div>
-                    ${o.shipping ? `<div class="order-meta">Verzending ${formatEuro(o.shipping)}</div>` : ''}
-                </div>
                 ${actions.length ? `<div class="admin-row-actions">${actions.join('')}</div>` : ''}
             </div>
         </article>
