@@ -1,9 +1,13 @@
 (function () {
-    const FREE_SHIPPING_FROM_DOMESTIC = 100;
-    const FREE_SHIPPING_FROM_INTERNATIONAL = 150;
-    const SHIPPING_FEE_DOMESTIC = 6.95;
-    const SHIPPING_FEE_INTERNATIONAL = 14.95;
-    const DOMESTIC_COUNTRIES = new Set(['NL', 'BE']);
+    const DEFAULT_SHIPPING = {
+        feeDomestic: 6.95,
+        feeInternational: 14.95,
+        freeFromDomestic: 100,
+        freeFromInternational: 150,
+        domesticCountries: ['NL', 'BE']
+    };
+
+    let shippingConfig = { ...DEFAULT_SHIPPING };
 
     function formatEuro(amount) {
         return '€' + Number(amount).toFixed(2).replace('.', ',');
@@ -22,30 +26,34 @@
         return el ? el.value : 'NL';
     }
 
+    function domesticSet() {
+        return new Set(shippingConfig.domesticCountries || DEFAULT_SHIPPING.domesticCountries);
+    }
+
     function shippingFor(subtotal, country) {
-        if (DOMESTIC_COUNTRIES.has(country)) {
-            return subtotal >= FREE_SHIPPING_FROM_DOMESTIC ? 0 : SHIPPING_FEE_DOMESTIC;
+        if (domesticSet().has(country)) {
+            return subtotal >= shippingConfig.freeFromDomestic ? 0 : shippingConfig.feeDomestic;
         }
-        return subtotal >= FREE_SHIPPING_FROM_INTERNATIONAL ? 0 : SHIPPING_FEE_INTERNATIONAL;
+        return subtotal >= shippingConfig.freeFromInternational ? 0 : shippingConfig.feeInternational;
     }
 
     function updateNote(subtotal, country, shipping) {
         const note = document.getElementById('checkout-note');
         if (!note) return;
-        const domestic = DOMESTIC_COUNTRIES.has(country);
+        const domestic = domesticSet().has(country);
         if (shipping === 0) {
             note.textContent = domestic
                 ? 'Gratis verzending binnen NL/BE. Na bevestigen rond je de betaling af.'
-                : 'Gratis internationale verzending vanaf €150. Na bevestigen rond je de betaling af.';
+                : `Gratis internationale verzending vanaf ${formatEuro(shippingConfig.freeFromInternational)}. Na bevestigen rond je de betaling af.`;
         } else if (domestic) {
-            const remaining = FREE_SHIPPING_FROM_DOMESTIC - subtotal;
+            const remaining = shippingConfig.freeFromDomestic - subtotal;
             note.textContent = remaining > 0
-                ? `Verzendkosten €${SHIPPING_FEE_DOMESTIC.toFixed(2).replace('.', ',')}. Nog ${formatEuro(remaining)} tot gratis verzending (NL/BE).`
+                ? `Verzendkosten ${formatEuro(shippingConfig.feeDomestic)}. Nog ${formatEuro(remaining)} tot gratis verzending (NL/BE).`
                 : 'Gratis verzending binnen NL/BE. Na bevestigen rond je de betaling af.';
         } else {
-            const remaining = FREE_SHIPPING_FROM_INTERNATIONAL - subtotal;
+            const remaining = shippingConfig.freeFromInternational - subtotal;
             note.textContent = remaining > 0
-                ? `Internationale verzending €${SHIPPING_FEE_INTERNATIONAL.toFixed(2).replace('.', ',')}. Nog ${formatEuro(remaining)} tot gratis verzending wereldwijd.`
+                ? `Internationale verzending ${formatEuro(shippingConfig.feeInternational)}. Nog ${formatEuro(remaining)} tot gratis verzending wereldwijd.`
                 : 'Gratis internationale verzending. Na bevestigen rond je de betaling af.';
         }
     }
@@ -91,6 +99,29 @@
             shipping === 0 ? 'Gratis' : formatEuro(shipping);
         document.getElementById('checkout-total').textContent = formatEuro(total);
         updateNote(subtotal, country, shipping);
+    }
+
+    async function loadShippingConfig() {
+        try {
+            const response = await fetch('/api/shipping');
+            if (!response.ok) return;
+            const data = await response.json();
+            const num = (value, fallback) => {
+                const n = Number(value);
+                return Number.isFinite(n) && n >= 0 ? n : fallback;
+            };
+            shippingConfig = {
+                feeDomestic: num(data.feeDomestic, DEFAULT_SHIPPING.feeDomestic),
+                feeInternational: num(data.feeInternational, DEFAULT_SHIPPING.feeInternational),
+                freeFromDomestic: num(data.freeFromDomestic, DEFAULT_SHIPPING.freeFromDomestic),
+                freeFromInternational: num(data.freeFromInternational, DEFAULT_SHIPPING.freeFromInternational),
+                domesticCountries: Array.isArray(data.domesticCountries) && data.domesticCountries.length
+                    ? data.domesticCountries
+                    : DEFAULT_SHIPPING.domesticCountries
+            };
+        } catch (_) {
+            /* keep defaults */
+        }
     }
 
     async function submitCheckout(event) {
@@ -181,7 +212,8 @@
         }
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
+        await loadShippingConfig();
         renderSummary();
         const form = document.getElementById('checkout-form');
         if (form) form.addEventListener('submit', submitCheckout);

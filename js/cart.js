@@ -152,7 +152,7 @@ function injectCartDrawer() {
                     <span>Totaal</span>
                     <strong id="cart-subtotal">€0,00</strong>
                 </div>
-                <p class="cart-shipping-note">Wereldwijde verzending · gratis vanaf €100 (NL/BE)</p>
+                <p class="cart-shipping-note" id="cart-shipping-note">Wereldwijde verzending · gratis vanaf €100 (NL/BE)</p>
                 <button type="button" class="btn-checkout" id="cart-checkout">Afrekenen</button>
                 <button type="button" class="btn-continue" id="cart-continue">Verder winkelen</button>
             </div>
@@ -168,6 +168,19 @@ function initCart() {
     injectCartDrawer();
     Cart.updateHeader();
     Cart.render();
+
+    fetch('/api/shipping')
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+            const note = document.getElementById('cart-shipping-note');
+            if (!note || !data) return;
+            const freeFrom = Number(data.freeFromDomestic);
+            if (!Number.isFinite(freeFrom) || freeFrom < 0) return;
+            note.textContent = freeFrom === 0
+                ? 'Wereldwijde verzending · gratis verzending (NL/BE)'
+                : `Wereldwijde verzending · gratis vanaf €${freeFrom.toFixed(2).replace('.', ',')} (NL/BE)`;
+        })
+        .catch(() => { /* keep default note */ });
 
     document.getElementById('cart-overlay').addEventListener('click', () => Cart.close());
     document.getElementById('cart-close').addEventListener('click', () => Cart.close());

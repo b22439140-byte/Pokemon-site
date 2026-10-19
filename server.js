@@ -40,11 +40,28 @@ const BUNQ_API_KEY = String(process.env.BUNQ_API_KEY || '').trim();
 const BUNQ_SANDBOX = /^(1|true|yes)$/i.test(String(process.env.BUNQ_SANDBOX || '').trim());
 const BUNQ_MONETARY_ACCOUNT_ID = String(process.env.BUNQ_MONETARY_ACCOUNT_ID || '').trim();
 const PUBLIC_BASE_URL = String(process.env.PUBLIC_BASE_URL || '').trim().replace(/\/$/, '');
-const SHIPPING_FEE_DOMESTIC = 6.95;
-const SHIPPING_FEE_INTERNATIONAL = 14.95;
-const FREE_SHIPPING_FROM_DOMESTIC = 100;
-const FREE_SHIPPING_FROM_INTERNATIONAL = 150;
+// Shipping — change via .env (see .env.example) or the defaults below.
+function envMoney(name, fallback) {
+    const raw = process.env[name];
+    if (raw == null || String(raw).trim() === '') return fallback;
+    const n = Number(String(raw).trim().replace(',', '.'));
+    return Number.isFinite(n) && n >= 0 ? n : fallback;
+}
+const SHIPPING_FEE_DOMESTIC = envMoney('SHIPPING_FEE_DOMESTIC', 6.95);
+const SHIPPING_FEE_INTERNATIONAL = envMoney('SHIPPING_FEE_INTERNATIONAL', 14.95);
+const FREE_SHIPPING_FROM_DOMESTIC = envMoney('FREE_SHIPPING_FROM_DOMESTIC', 100);
+const FREE_SHIPPING_FROM_INTERNATIONAL = envMoney('FREE_SHIPPING_FROM_INTERNATIONAL', 150);
 const DOMESTIC_COUNTRIES = new Set(['NL', 'BE']);
+
+function publicShippingConfig() {
+    return {
+        feeDomestic: SHIPPING_FEE_DOMESTIC,
+        feeInternational: SHIPPING_FEE_INTERNATIONAL,
+        freeFromDomestic: FREE_SHIPPING_FROM_DOMESTIC,
+        freeFromInternational: FREE_SHIPPING_FROM_INTERNATIONAL,
+        domesticCountries: [...DOMESTIC_COUNTRIES]
+    };
+}
 const ALLOWED_COUNTRIES = new Set([
     'NL', 'BE', 'DE', 'AT', 'FR', 'LU', 'GB', 'IE', 'IT', 'ES', 'PT', 'PL',
     'SE', 'NO', 'DK', 'FI', 'CH', 'US', 'CA', 'AU', 'JP', 'SG', 'OTHER'
@@ -985,6 +1002,10 @@ app.delete('/api/admin/contacts/:id', requireAdmin, (req, res) => {
     contacts.splice(index, 1);
     writeContacts(contacts);
     res.json({ ok: true });
+});
+
+app.get('/api/shipping', (_req, res) => {
+    res.json(publicShippingConfig());
 });
 
 app.get('/api/health', (_req, res) => {
