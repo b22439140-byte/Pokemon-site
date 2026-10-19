@@ -41,6 +41,8 @@ let keptImages = [];
 let pendingImages = [];
 /** @type {object[]} */
 let allOrders = [];
+/** @type {Set<string>} */
+const expandedOrderIds = new Set();
 let ordersFilter = 'all';
 let ordersSort = 'newest';
 
@@ -439,51 +441,73 @@ function renderOrders() {
         const status = o.status || 'pending';
         const normalized = normalizeOrderStatus(status);
         const items = Array.isArray(o.items) ? o.items : [];
-        const shownItems = items.slice(0, 2);
-        const extraCount = items.length - shownItems.length;
+        const itemCount = items.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0);
         const itemsHtml = items.length
-            ? `<ul class="order-items-list">${shownItems.map((item) => `
-                <li title="${escapeHtml(item.title || 'Product')}">${escapeHtml(item.title || 'Product')} × ${Number(item.quantity) || 1}</li>
-            `).join('')}${extraCount > 0 ? `<li class="order-items-more">+${extraCount} meer</li>` : ''}</ul>`
-            : '<div class="order-meta">Geen producten</div>';
+            ? `<ul class="order-items-list">${items.map((item) => `
+                <li>
+                    <span class="order-item-title">${escapeHtml(item.title || 'Product')} × ${Number(item.quantity) || 1}</span>
+                    <span class="order-item-price">${formatEuro(item.lineTotal ?? (item.price * item.quantity))}</span>
+                </li>
+            `).join('')}</ul>`
+            : '<p class="order-meta">Geen producten</p>';
 
         const customer = o.customer || {};
         const address = formatAddress(customer.address);
-        const cityLine = customer.address && typeof customer.address === 'object'
-            ? [customer.address.postalCode, customer.address.city].filter(Boolean).join(' ')
-            : '';
+        const isOpen = expandedOrderIds.has(o.id);
+        const preview = items[0]
+            ? `${escapeHtml(items[0].title || 'Product')}${items.length > 1 ? ` +${items.length - 1}` : ''}`
+            : 'Geen producten';
 
         const actions = [];
         if (normalized !== 'paid') {
-            actions.push('<button type="button" class="btn-secondary btn-order-paid">Betaald</button>');
+            actions.push('<button type="button" class="btn-secondary btn-order-paid">Markeer betaald</button>');
         }
         if (normalized === 'pending') {
-            actions.push('<button type="button" class="btn-danger btn-order-cancel">Annuleer</button>');
+            actions.push('<button type="button" class="btn-danger btn-order-cancel">Annuleren</button>');
         }
         if (normalized === 'cancelled') {
             actions.push('<button type="button" class="btn-secondary btn-order-reopen">Heropen</button>');
         }
 
         return `
-        <article class="order-card" data-order-id="${escapeHtml(o.id)}" title="${escapeHtml(address)}">
-            <div class="order-card-block">
-                <div class="order-card-id">#${escapeHtml(String(o.id || '').slice(0, 8))}</div>
-                <div class="order-meta">${escapeHtml(formatDateTime(o.createdAt))}</div>
-            </div>
-            <div class="order-card-block">
-                <strong title="${escapeHtml(customer.name || '')}">${escapeHtml(customer.name || '—')}</strong>
-                <div class="order-meta"><a href="mailto:${escapeHtml(customer.email || '')}">${escapeHtml(customer.email || '')}</a>${cityLine ? ` · ${escapeHtml(cityLine)}` : ''}</div>
-            </div>
-            <div class="order-card-block">${itemsHtml}</div>
-            <div class="order-card-total">
-                <strong>${formatEuro(o.total)}</strong>
-                <div class="order-meta">${escapeHtml(paymentMethodLabel(o.paymentMethod))}</div>
-            </div>
-            <div class="order-card-block">
-                <span class="contact-status order-status ${orderStatusClass(status)}">${orderStatusLabel(status)}</span>
-            </div>
-            <div class="order-card-aside">
-                ${actions.length ? `<div class="admin-row-actions">${actions.join('')}</div>` : ''}
+        <article class="order-card${isOpen ? ' is-open' : ''}" data-order-id="${escapeHtml(o.id)}">
+            <button type="button" class="order-summary" aria-expanded="${isOpen ? 'true' : 'false'}">
+                <div class="order-summary-main">
+                    <div class="order-summary-top">
+                        <span class="order-card-id">#${escapeHtml(String(o.id || '').slice(0, 8))}</span>
+                        <span class="contact-status order-status ${orderStatusClass(status)}">${orderStatusLabel(status)}</span>
+                    </div>
+                    <div class="order-summary-name">${escapeHtml(customer.name || '—')}</div>
+                    <div class="order-summary-meta">${escapeHtml(formatDateTime(o.createdAt))} · ${itemCount} product${itemCount !== 1 ? 'en' : ''} · ${preview}</div>
+                </div>
+                <div class="order-summary-total">
+                    <strong>${formatEuro(o.total)}</strong>
+                    <div class="order-summary-meta">${escapeHtml(paymentMethodLabel(o.paymentMethod))}</div>
+                </div>
+                <span class="order-summary-chevron" aria-hidden="true">▾</span>
+            </button>
+            <div class="order-details">
+                <div class="order-details-grid">
+                    <div class="order-details-block">
+                        <span class="order-details-label">Klant</span>
+                        <p><strong>${escapeHtml(customer.name || '—')}</strong></p>
+                        ${customer.email ? `<p><a href="mailto:${escapeHtml(customer.email)}">${escapeHtml(customer.email)}</a></p>` : ''}
+                        ${customer.phone ? `<p><a href="tel:${escapeHtml(customer.phone)}">${escapeHtml(customer.phone)}</a></p>` : ''}
+                        ${address ? `<p class="order-meta">${escapeHtml(address)}</p>` : ''}
+                    </div>
+                    <div class="order-details-block">
+                        <span class="order-details-label">Producten</span>
+                        ${itemsHtml}
+                    </div>
+                </div>
+                <div class="order-details-footer">
+                    <div class="order-details-pay">
+                        ${escapeHtml(paymentMethodLabel(o.paymentMethod))}
+                        ${o.shipping ? ` · Verzending ${formatEuro(o.shipping)}` : ''}
+                        ${o.paidAt ? ` · Betaald ${escapeHtml(formatDateTime(o.paidAt))}` : ''}
+                    </div>
+                    ${actions.length ? `<div class="admin-row-actions">${actions.join('')}</div>` : ''}
+                </div>
             </div>
         </article>
         `;
@@ -845,6 +869,16 @@ ordersList?.addEventListener('click', async (e) => {
     if (!card) return;
     const id = card.dataset.orderId;
 
+    if (e.target.closest('.order-summary')) {
+        if (expandedOrderIds.has(id)) {
+            expandedOrderIds.delete(id);
+        } else {
+            expandedOrderIds.add(id);
+        }
+        renderOrders();
+        return;
+    }
+
     let status = null;
     if (e.target.classList.contains('btn-order-paid')) {
         status = 'paid';
@@ -862,6 +896,7 @@ ordersList?.addEventListener('click', async (e) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status })
         });
+        expandedOrderIds.add(id);
         await loadOrders();
     } catch (err) {
         alert(err.message);
