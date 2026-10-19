@@ -1,18 +1,18 @@
 const PRODUCT_CATEGORIES = [
-    { value: 'pokemon', label: 'Pokémon' },
-    { value: 'boxen', label: 'Boxen' },
-    { value: 'boosters', label: 'Boosters' },
-    { value: 'tins', label: 'Tins' },
-    { value: 'blisters', label: 'Blisters' },
-    { value: 'losse-kaarten', label: 'Losse Kaarten' },
-    { value: 'accessoires', label: 'Accessoires' },
-    { value: 'andere-tcg', label: 'Andere TCG' },
-    { value: 'lego', label: 'LEGO' },
-    { value: 'sale', label: 'Sale' }
+    { value: 'pokemon', label: 'Pokémon', labelKey: 'cat.pokemon' },
+    { value: 'boxen', label: 'Boxen', labelKey: 'cat.boxen' },
+    { value: 'boosters', label: 'Boosters', labelKey: 'cat.boosters' },
+    { value: 'tins', label: 'Tins', labelKey: 'cat.tins' },
+    { value: 'blisters', label: 'Blisters', labelKey: 'cat.blisters' },
+    { value: 'losse-kaarten', label: 'Losse Kaarten', labelKey: 'cat.singles' },
+    { value: 'accessoires', label: 'Accessoires', labelKey: 'cat.accessories' },
+    { value: 'andere-tcg', label: 'Andere TCG', labelKey: 'cat.otherTcg' },
+    { value: 'lego', label: 'LEGO', labelKey: 'cat.lego' },
+    { value: 'sale', label: 'Sale', labelKey: 'cat.sale' }
 ];
 
 const PSA_GRADES = [
-    { value: '', label: 'Geen PSA' },
+    { value: '', label: 'Geen PSA', labelKey: 'psa.none' },
     { value: '1', label: 'PSA 1' },
     { value: '2', label: 'PSA 2' },
     { value: '3', label: 'PSA 3' },
@@ -35,13 +35,17 @@ const LEGACY_CATEGORY_MAP = {
 
 function categoryLabel(value) {
     const found = PRODUCT_CATEGORIES.find((c) => c.value === value);
-    return found ? found.label : value || '—';
+    if (!found) return value || '—';
+    if (found.labelKey && typeof t === 'function') return t(found.labelKey);
+    return found.label;
 }
 
 function psaLabel(value) {
     if (!value) return '';
     const found = PSA_GRADES.find((g) => g.value === String(value));
-    return found ? found.label : `PSA ${value}`;
+    if (!found) return `PSA ${value}`;
+    if (found.labelKey && typeof t === 'function') return t(found.labelKey);
+    return found.label;
 }
 
 function normalizeProductMeta(product) {

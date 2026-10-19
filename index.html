@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>PokeVault — Jouw trading card webshop</title>
+    <title data-i18n-title="home.title">PokeVault — Jouw trading card webshop</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet">
@@ -17,13 +17,17 @@
 
     <div class="top-bar">
         <div class="top-bar-left">
-            <span>3-5 dagen levertijd</span>
-            <span>Wereldwijde verzending · gratis vanaf €100</span>
-            <span>Beoordeeld met 9,4/10 op Trustpilot</span>
+            <span data-i18n="top.delivery">3-5 dagen levertijd</span>
+            <span data-i18n="top.shipping">Wereldwijde verzending · gratis vanaf €100</span>
+            <span data-i18n="top.trustpilot">Beoordeeld met 9,4/10 op Trustpilot</span>
         </div>
         <div class="top-bar-right">
-            <a href="/contact">Klantenservice</a>
-            <a href="#">NL | EN</a>
+            <a href="/contact" data-i18n="nav.customerService">Klantenservice</a>
+            <div class="lang-switch" role="group" aria-label="Language">
+                <button type="button" class="lang-btn" data-set-lang="nl" aria-pressed="true">NL</button>
+                <span class="lang-sep" aria-hidden="true">|</span>
+                <button type="button" class="lang-btn" data-set-lang="en" aria-pressed="false">EN</button>
+            </div>
         </div>
     </div>
 
@@ -35,8 +39,8 @@
         </div>
 
         <form class="search-container" action="/aanbod" role="search">
-            <input type="search" placeholder="Zoek kaarten, boxes, accessoires…">
-            <button type="submit">Zoeken</button>
+            <input type="search" placeholder="Zoek kaarten, boxes, accessoires…" data-i18n-placeholder="search.placeholder">
+            <button type="submit" data-i18n="search.button">Zoeken</button>
         </form>
 
         <div class="user-actions">
@@ -48,28 +52,28 @@
         </div>
     </header>
 
-    <nav class="category-nav" aria-label="Productcategorieën">
+    <nav class="category-nav" data-i18n-aria="nav.categories" aria-label="Productcategorieën">
         <ul>
-            <li><a href="/aanbod?category=pokemon">Pokémon</a></li>
-            <li><a href="/aanbod?category=boxen">Boxen</a></li>
-            <li><a href="/aanbod?category=boosters">Boosters</a></li>
-            <li><a href="/aanbod?category=tins">Tins</a></li>
-            <li><a href="/aanbod?category=blisters">Blisters</a></li>
-            <li><a href="/aanbod?category=losse-kaarten">Losse Kaarten</a></li>
-            <li><a href="/aanbod?category=accessoires">Accessoires</a></li>
-            <li><a href="/aanbod?category=lego">LEGO</a></li>
-            <li><a href="/aanbod?category=sale" class="nav-sale">Sale</a></li>
+            <li><a href="/aanbod?category=pokemon" data-i18n="nav.pokemon">Pokémon</a></li>
+            <li><a href="/aanbod?category=boxen" data-i18n="nav.boxen">Boxen</a></li>
+            <li><a href="/aanbod?category=boosters" data-i18n="nav.boosters">Boosters</a></li>
+            <li><a href="/aanbod?category=tins" data-i18n="nav.tins">Tins</a></li>
+            <li><a href="/aanbod?category=blisters" data-i18n="nav.blisters">Blisters</a></li>
+            <li><a href="/aanbod?category=losse-kaarten" data-i18n="nav.singles">Losse Kaarten</a></li>
+            <li><a href="/aanbod?category=accessoires" data-i18n="nav.accessories">Accessoires</a></li>
+            <li><a href="/aanbod?category=lego" data-i18n="nav.lego">LEGO</a></li>
+            <li><a href="/aanbod?category=sale" class="nav-sale" data-i18n="nav.sale">Sale</a></li>
         </ul>
     </nav>
 
     <section class="hero">
         <div class="hero-copy">
-            <p class="hero-kicker">Nieuw binnen deze week</p>
-            <h2>Sealed product en singles, klaar om te verzenden.</h2>
-            <p>Van Paldean Fates boxes tot illustration rares — vind de kaarten die je zoekt, zonder marketplace-gedoe.</p>
+            <p class="hero-kicker" data-i18n="home.heroKicker">Nieuw binnen deze week</p>
+            <h2 data-i18n="home.heroTitle">Sealed product en singles, klaar om te verzenden.</h2>
+            <p data-i18n="home.heroText">Van Paldean Fates boxes tot illustration rares — vind de kaarten die je zoekt, zonder marketplace-gedoe.</p>
             <div class="hero-actions">
-                <a class="btn-hero" href="/aanbod">Bekijk nieuw binnen</a>
-                <a class="btn-hero-ghost" href="/aanbod">Bekijk pre-orders</a>
+                <a class="btn-hero" href="/aanbod" data-i18n="home.ctaNew">Bekijk nieuw binnen</a>
+                <a class="btn-hero-ghost" href="/aanbod" data-i18n="home.ctaPreorder">Bekijk pre-orders</a>
             </div>
         </div>
         <div class="hero-art" aria-hidden="true">
@@ -85,59 +89,59 @@
         </div>
     </section>
 
-    <section class="trust-bar" aria-label="Winkelvoordelen">
+    <section class="trust-bar" data-i18n-aria="home.trustAria" aria-label="Winkelvoordelen">
         <div class="trust-item">
             <div class="trust-icon">3-5</div>
             <div>
-                <strong>3-5 dagen levertijd</strong>
-                <span>Traceerbare verzending</span>
+                <strong data-i18n="home.trustDelivery">3-5 dagen levertijd</strong>
+                <span data-i18n="home.trustDeliverySub">Traceerbare verzending</span>
             </div>
         </div>
         <div class="trust-item">
             <div class="trust-icon">€</div>
             <div>
-                <strong>Gratis vanaf €100</strong>
-                <span>Traceerbare verzending</span>
+                <strong data-i18n="home.trustFree">Gratis vanaf €100</strong>
+                <span data-i18n="home.trustFreeSub">Traceerbare verzending</span>
             </div>
         </div>
         <div class="trust-item">
             <div class="trust-icon">NM</div>
             <div>
-                <strong>Conditie gegarandeerd</strong>
-                <span>Eerlijke grading, foto’s op verzoek</span>
+                <strong data-i18n="home.trustCondition">Conditie gegarandeerd</strong>
+                <span data-i18n="home.trustConditionSub">Eerlijke grading, foto’s op verzoek</span>
             </div>
         </div>
         <div class="trust-item">
             <div class="trust-icon">9,4</div>
             <div>
-                <strong>Vertrouwd door collectors</strong>
-                <span>9,4 op Trustpilot</span>
+                <strong data-i18n="home.trustTrusted">Vertrouwd door collectors</strong>
+                <span data-i18n="home.trustTrustedSub">9,4 op Trustpilot</span>
             </div>
         </div>
     </section>
 
     <section class="game-section">
         <div class="section-header">
-            <h2>Shop per categorie</h2>
+            <h2 data-i18n="home.shopByCat">Shop per categorie</h2>
         </div>
         <div class="game-grid">
-            <a class="game-card pokemon" href="/aanbod?category=pokemon">Pokémon<small>Sealed &amp; singles</small></a>
-            <a class="game-card boxen" href="/aanbod?category=boxen">Boxen<small>ETB’s &amp; booster boxes</small></a>
-            <a class="game-card boosters" href="/aanbod?category=boosters">Boosters<small>Losse packs</small></a>
-            <a class="game-card singles" href="/aanbod?category=losse-kaarten">Losse Kaarten<small>Singles &amp; graded</small></a>
-            <a class="game-card accessories" href="/aanbod?category=accessoires">Accessoires<small>Sleeves &amp; toploaders</small></a>
-            <a class="game-card lego" href="/aanbod?category=lego">LEGO<small>Sets &amp; collectibles</small></a>
+            <a class="game-card pokemon" href="/aanbod?category=pokemon"><span data-i18n="nav.pokemon">Pokémon</span><small data-i18n="home.catPokemonSub">Sealed &amp; singles</small></a>
+            <a class="game-card boxen" href="/aanbod?category=boxen"><span data-i18n="nav.boxen">Boxen</span><small data-i18n="home.catBoxenSub">ETB’s &amp; booster boxes</small></a>
+            <a class="game-card boosters" href="/aanbod?category=boosters"><span data-i18n="nav.boosters">Boosters</span><small data-i18n="home.catBoostersSub">Losse packs</small></a>
+            <a class="game-card singles" href="/aanbod?category=losse-kaarten"><span data-i18n="nav.singles">Losse Kaarten</span><small data-i18n="home.catSinglesSub">Singles &amp; graded</small></a>
+            <a class="game-card accessories" href="/aanbod?category=accessoires"><span data-i18n="nav.accessories">Accessoires</span><small data-i18n="home.catAccessoriesSub">Sleeves &amp; toploaders</small></a>
+            <a class="game-card lego" href="/aanbod?category=lego"><span data-i18n="nav.lego">LEGO</span><small data-i18n="home.catLegoSub">Sets &amp; collectibles</small></a>
         </div>
     </section>
 
     <main class="shop-section" id="shop">
         <div class="section-header">
-            <h2>Nieuw binnen &amp; pre-orders</h2>
-            <a href="/aanbod">Bekijk alle producten →</a>
+            <h2 data-i18n="home.featuredTitle">Nieuw binnen &amp; pre-orders</h2>
+            <a href="/aanbod" data-i18n="home.featuredLink">Bekijk alle producten →</a>
         </div>
 
         <div class="product-grid" id="home-product-grid">
-            <p class="empty-state">Nog geen producten. Voeg ze toe via de admin.</p>
+            <p class="empty-state" data-i18n="home.empty">Nog geen producten. Voeg ze toe via de admin.</p>
         </div>
     </main>
 
@@ -145,29 +149,29 @@
         <div class="footer-grid">
             <div class="footer-col">
                 <div class="footer-brand">Poke<span>Vault</span></div>
-                <p>Een webshop van collectors, voor collectors. Sealed Pokémon, singles en tafel-TCG’s — eerlijke conditie en snelle verzending vanuit Nederland.</p>
+                <p data-i18n="footer.blurb">Een webshop van collectors, voor collectors. Sealed Pokémon, singles en tafel-TCG’s — eerlijke conditie en snelle verzending vanuit Nederland.</p>
             </div>
             <div class="footer-col">
-                <h4>Klantenservice</h4>
+                <h4 data-i18n="footer.customerService">Klantenservice</h4>
                 <ul>
-                    <li><a href="/contact">Contact</a></li>
+                    <li><a href="/contact" data-i18n="footer.contact">Contact</a></li>
                     <li><a href="mailto:info@pokëvault.com">info@pokëvault.com</a></li>
-                    <li><a href="#">Verzending &amp; retourneren</a></li>
-                    <li><a href="/veelgestelde-vragen">Veelgestelde vragen</a></li>
+                    <li><a href="#" data-i18n="footer.shippingReturns">Verzending &amp; retourneren</a></li>
+                    <li><a href="/veelgestelde-vragen" data-i18n="footer.faq">Veelgestelde vragen</a></li>
                 </ul>
             </div>
             <div class="footer-col">
-                <h4>Informatie</h4>
+                <h4 data-i18n="footer.info">Informatie</h4>
                 <ul>
-                    <li><a href="/over">Over PokeVault</a></li>
-                    <li><a href="/voorwaarden-privacy">Algemene voorwaarden</a></li>
-                    <li><a href="/voorwaarden-privacy#privacy">Privacybeleid</a></li>
-                    <li><a href="#">Gradingsschaal</a></li>
+                    <li><a href="/over" data-i18n="footer.about">Over PokeVault</a></li>
+                    <li><a href="/voorwaarden-privacy" data-i18n="footer.terms">Algemene voorwaarden</a></li>
+                    <li><a href="/voorwaarden-privacy#privacy" data-i18n="footer.privacy">Privacybeleid</a></li>
+                    <li><a href="#" data-i18n="footer.grading">Gradingsschaal</a></li>
                 </ul>
             </div>
             <div class="footer-col">
-                <h4>Betaalmethoden</h4>
-                <div class="footer-payments" aria-label="Geaccepteerde betaalmethoden">
+                <h4 data-i18n="footer.payments">Betaalmethoden</h4>
+                <div class="footer-payments" data-i18n-aria="footer.paymentsAria" aria-label="Geaccepteerde betaalmethoden">
                     <img src="/assets/payments/ideal.svg" alt="iDEAL" width="48" height="32">
                     <img src="/assets/payments/bancontact.svg" alt="Bancontact" width="72" height="32">
                     <img src="/assets/payments/visa.svg" alt="Visa" width="48" height="32">
@@ -178,10 +182,11 @@
             </div>
         </div>
         <div class="footer-bottom">
-            <p>&copy; 2026 PokeVault. Spoelsterstraat 41, Haaksbergen. KvK: 08185063</p>
+            <p data-i18n="footer.copyright">&copy; 2026 PokeVault. Spoelsterstraat 41, Haaksbergen. KvK: 08185063</p>
         </div>
     </footer>
 
+    <script src="/js/i18n.js"></script>
     <script src="/js/categories.js"></script>
     <script src="/js/products.js"></script>
     <script src="/js/aanbod.js"></script>
@@ -192,14 +197,20 @@
             if (!grid || typeof loadProducts !== 'function' || typeof renderProductGrid !== 'function') return;
             try {
                 await loadProducts();
-                const featured = PRODUCTS.filter((p) => p.category !== 'accessoires').slice(0, 4);
-                if (!featured.length) {
-                    grid.innerHTML = '<p class="empty-state">Nog geen producten. Voeg ze toe via de admin.</p>';
-                    return;
-                }
-                renderProductGrid(grid, featured);
+                const renderHome = () => {
+                    const featured = PRODUCTS.filter((p) => p.category !== 'accessoires').slice(0, 4);
+                    if (!featured.length) {
+                        const empty = typeof t === 'function' ? t('home.empty') : 'Nog geen producten. Voeg ze toe via de admin.';
+                        grid.innerHTML = '<p class="empty-state">' + empty + '</p>';
+                        return;
+                    }
+                    renderProductGrid(grid, featured);
+                };
+                renderHome();
+                window.addEventListener('pokevault:langchange', renderHome);
             } catch (_) {
-                grid.innerHTML = '<p class="empty-state">Producten konden niet worden geladen.</p>';
+                const err = typeof t === 'function' ? t('home.loadError') : 'Producten konden niet worden geladen.';
+                grid.innerHTML = '<p class="empty-state">' + err + '</p>';
             }
         });
     </script>

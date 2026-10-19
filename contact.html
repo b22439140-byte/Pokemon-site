@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Contact — PokeVault</title>
+    <title data-i18n-title="contact.title">Contact — PokeVault</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet">
@@ -17,13 +17,17 @@
 
     <div class="top-bar">
         <div class="top-bar-left">
-            <span>3-5 dagen levertijd</span>
-            <span>Wereldwijde verzending · gratis vanaf €100</span>
-            <span>Beoordeeld met 9,4/10 op Trustpilot</span>
+            <span data-i18n="top.delivery">3-5 dagen levertijd</span>
+            <span data-i18n="top.shipping">Wereldwijde verzending · gratis vanaf €100</span>
+            <span data-i18n="top.trustpilot">Beoordeeld met 9,4/10 op Trustpilot</span>
         </div>
         <div class="top-bar-right">
-            <a href="/contact">Klantenservice</a>
-            <a href="#">NL | EN</a>
+            <a href="/contact" data-i18n="nav.customerService">Klantenservice</a>
+            <div class="lang-switch" role="group" aria-label="Language">
+                <button type="button" class="lang-btn" data-set-lang="nl" aria-pressed="true">NL</button>
+                <span class="lang-sep" aria-hidden="true">|</span>
+                <button type="button" class="lang-btn" data-set-lang="en" aria-pressed="false">EN</button>
+            </div>
         </div>
     </div>
 
@@ -35,8 +39,8 @@
         </div>
 
         <form class="search-container" action="/aanbod" role="search">
-            <input type="search" name="q" placeholder="Zoek kaarten, boxes, accessoires…">
-            <button type="submit">Zoeken</button>
+            <input type="search" name="q" placeholder="Zoek kaarten, boxes, accessoires…" data-i18n-placeholder="search.placeholder">
+            <button type="submit" data-i18n="search.button">Zoeken</button>
         </form>
 
         <div class="user-actions">
@@ -48,89 +52,89 @@
         </div>
     </header>
 
-    <nav class="category-nav" aria-label="Productcategorieën">
+    <nav class="category-nav" data-i18n-aria="nav.categories" aria-label="Productcategorieën">
         <ul>
-            <li><a href="/aanbod?category=pokemon">Pokémon</a></li>
-            <li><a href="/aanbod?category=boxen">Boxen</a></li>
-            <li><a href="/aanbod?category=boosters">Boosters</a></li>
-            <li><a href="/aanbod?category=tins">Tins</a></li>
-            <li><a href="/aanbod?category=blisters">Blisters</a></li>
-            <li><a href="/aanbod?category=losse-kaarten">Losse Kaarten</a></li>
-            <li><a href="/aanbod?category=accessoires">Accessoires</a></li>
-            <li><a href="/aanbod?category=lego">LEGO</a></li>
-            <li><a href="/aanbod?category=sale" class="nav-sale">Sale</a></li>
+            <li><a href="/aanbod?category=pokemon" data-i18n="nav.pokemon">Pokémon</a></li>
+            <li><a href="/aanbod?category=boxen" data-i18n="nav.boxen">Boxen</a></li>
+            <li><a href="/aanbod?category=boosters" data-i18n="nav.boosters">Boosters</a></li>
+            <li><a href="/aanbod?category=tins" data-i18n="nav.tins">Tins</a></li>
+            <li><a href="/aanbod?category=blisters" data-i18n="nav.blisters">Blisters</a></li>
+            <li><a href="/aanbod?category=losse-kaarten" data-i18n="nav.singles">Losse Kaarten</a></li>
+            <li><a href="/aanbod?category=accessoires" data-i18n="nav.accessories">Accessoires</a></li>
+            <li><a href="/aanbod?category=lego" data-i18n="nav.lego">LEGO</a></li>
+            <li><a href="/aanbod?category=sale" class="nav-sale" data-i18n="nav.sale">Sale</a></li>
         </ul>
     </nav>
 
     <section class="page-hero">
-        <h1>Contact</h1>
-        <p>Heb je een vraag over een bestelling, conditie van een kaart of een speciale aanvraag? We reageren doorgaans binnen één werkdag.</p>
+        <h1 data-i18n="contact.heroTitle">Contact</h1>
+        <p data-i18n="contact.heroText">Heb je een vraag over een bestelling, conditie van een kaart of een speciale aanvraag? We reageren doorgaans binnen één werkdag.</p>
     </section>
 
     <main class="page-main">
         <div class="contact-grid">
             <div class="contact-info">
                 <div class="contact-card">
-                    <h3>E-mail</h3>
+                    <h3 data-i18n="contact.email">E-mail</h3>
                     <p><a href="mailto:info@pokëvault.com">info@pokëvault.com</a></p>
                 </div>
                 <div class="contact-card">
-                    <h3>Telefoon</h3>
-                    <p>Ma–vr, 09:00–17:00</p>
+                    <h3 data-i18n="contact.phone">Telefoon</h3>
+                    <p data-i18n="contact.phoneHours">Ma–vr, 09:00–17:00</p>
                     <p><a href="tel:+31201234567">+31 (0)20 123 4567</a></p>
                 </div>
                 <div class="contact-card">
-                    <h3>Adres</h3>
-                    <p>PokeVault<br>Spoelsterstraat 41<br>Haaksbergen<br>Nederland</p>
-                    <p>KvK: 08185063</p>
+                    <h3 data-i18n="contact.address">Adres</h3>
+                    <p data-i18n-html="contact.addressBody">PokeVault<br>Spoelsterstraat 41<br>Haaksbergen<br>Nederland</p>
+                    <p data-i18n="contact.kvk">KvK: 08185063</p>
                 </div>
                 <div class="contact-card">
-                    <h3>Retouradres</h3>
-                    <p>PokeVault — Retouren<br>Spoelsterstraat 41<br>Haaksbergen</p>
+                    <h3 data-i18n="contact.returnAddress">Retouradres</h3>
+                    <p data-i18n-html="contact.returnBody">PokeVault — Retouren<br>Spoelsterstraat 41<br>Haaksbergen</p>
                 </div>
             </div>
 
             <form class="contact-form" id="contact-form">
-                <h2 id="contact-form-title">Stuur ons een bericht</h2>
+                <h2 id="contact-form-title" data-i18n="contact.formTitle">Stuur ons een bericht</h2>
                 <div id="contact-product-banner" class="contact-product-banner" hidden></div>
                 <input type="hidden" id="productId" name="productId" value="">
                 <input type="hidden" id="productTitle" name="productTitle" value="">
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="name">Naam</label>
-                        <input type="text" id="name" name="name" required maxlength="120" placeholder="Je volledige naam" autocomplete="name">
+                        <label for="name" data-i18n="contact.name">Naam</label>
+                        <input type="text" id="name" name="name" required maxlength="120" placeholder="Je volledige naam" data-i18n-placeholder="contact.namePlaceholder" autocomplete="name">
                     </div>
                     <div class="form-group">
-                        <label for="email">E-mailadres</label>
-                        <input type="email" id="email" name="email" required maxlength="200" placeholder="naam@voorbeeld.nl" autocomplete="email">
+                        <label for="email" data-i18n="contact.emailLabel">E-mailadres</label>
+                        <input type="email" id="email" name="email" required maxlength="200" placeholder="naam@voorbeeld.nl" data-i18n-placeholder="contact.emailPlaceholder" autocomplete="email">
                     </div>
                 </div>
                 <div class="form-group">
-                    <label for="phone">Telefoonnummer (optioneel)</label>
-                    <input type="tel" id="phone" name="phone" maxlength="40" placeholder="06 12345678" autocomplete="tel">
+                    <label for="phone" data-i18n="contact.phoneLabel">Telefoonnummer (optioneel)</label>
+                    <input type="tel" id="phone" name="phone" maxlength="40" placeholder="06 12345678" data-i18n-placeholder="contact.phonePlaceholder" autocomplete="tel">
                 </div>
                 <div class="form-group">
-                    <label for="subject">Onderwerp</label>
+                    <label for="subject" data-i18n="contact.subject">Onderwerp</label>
                     <select id="subject" name="subject" required>
-                        <option value="">Kies een onderwerp</option>
-                        <option value="interest">Interesse in product</option>
-                        <option value="order">Vraag over bestelling</option>
-                        <option value="product">Vraag over product / conditie</option>
-                        <option value="return">Retour of ruil</option>
-                        <option value="wholesale">Groothandel / bulk</option>
-                        <option value="other">Overig</option>
+                        <option value="" data-i18n="contact.subjectChoose">Kies een onderwerp</option>
+                        <option value="interest" data-i18n="contact.subjectInterest">Interesse in product</option>
+                        <option value="order" data-i18n="contact.subjectOrder">Vraag over bestelling</option>
+                        <option value="product" data-i18n="contact.subjectProduct">Vraag over product / conditie</option>
+                        <option value="return" data-i18n="contact.subjectReturn">Retour of ruil</option>
+                        <option value="wholesale" data-i18n="contact.subjectWholesale">Groothandel / bulk</option>
+                        <option value="other" data-i18n="contact.subjectOther">Overig</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="order">Bestelnummer (optioneel)</label>
-                    <input type="text" id="order" name="order" maxlength="80" placeholder="bijv. TCG-2026-0042">
+                    <label for="order" data-i18n="contact.order">Bestelnummer (optioneel)</label>
+                    <input type="text" id="order" name="order" maxlength="80" placeholder="bijv. TCG-2026-0042" data-i18n-placeholder="contact.orderPlaceholder">
                 </div>
                 <div class="form-group">
-                    <label for="message">Bericht</label>
-                    <textarea id="message" name="message" required maxlength="4000" placeholder="Beschrijf je vraag zo duidelijk mogelijk…"></textarea>
+                    <label for="message" data-i18n="contact.message">Bericht</label>
+                    <textarea id="message" name="message" required maxlength="4000" placeholder="Beschrijf je vraag zo duidelijk mogelijk…" data-i18n-placeholder="contact.messagePlaceholder"></textarea>
                 </div>
-                <button type="submit" class="btn-submit" id="contact-submit">Verstuur bericht</button>
-                <p class="form-success" id="form-success">Bedankt! Je bericht is verzonden. We nemen zo snel mogelijk contact met je op.</p>
+                <button type="submit" class="btn-submit" id="contact-submit" data-i18n="contact.submit">Verstuur bericht</button>
+                <p class="form-success" id="form-success" data-i18n="contact.success">Bedankt! Je bericht is verzonden. We nemen zo snel mogelijk contact met je op.</p>
                 <p class="form-error" id="form-error" role="alert"></p>
             </form>
         </div>
@@ -140,29 +144,29 @@
         <div class="footer-grid">
             <div class="footer-col">
                 <div class="footer-brand">Poke<span>Vault</span></div>
-                <p>Een webshop van collectors, voor collectors. Sealed Pokémon, singles en tafel-TCG's — eerlijke conditie en snelle verzending vanuit Nederland.</p>
+                <p data-i18n="footer.blurb">Een webshop van collectors, voor collectors. Sealed Pokémon, singles en tafel-TCG’s — eerlijke conditie en snelle verzending vanuit Nederland.</p>
             </div>
             <div class="footer-col">
-                <h4>Klantenservice</h4>
+                <h4 data-i18n="footer.customerService">Klantenservice</h4>
                 <ul>
-                    <li><a href="/contact">Contact</a></li>
+                    <li><a href="/contact" data-i18n="footer.contact">Contact</a></li>
                     <li><a href="mailto:info@pokëvault.com">info@pokëvault.com</a></li>
-                    <li><a href="#">Verzending &amp; retourneren</a></li>
-                    <li><a href="/veelgestelde-vragen">Veelgestelde vragen</a></li>
+                    <li><a href="#" data-i18n="footer.shippingReturns">Verzending &amp; retourneren</a></li>
+                    <li><a href="/veelgestelde-vragen" data-i18n="footer.faq">Veelgestelde vragen</a></li>
                 </ul>
             </div>
             <div class="footer-col">
-                <h4>Informatie</h4>
+                <h4 data-i18n="footer.info">Informatie</h4>
                 <ul>
-                    <li><a href="/over">Over PokeVault</a></li>
-                    <li><a href="/voorwaarden-privacy">Algemene voorwaarden</a></li>
-                    <li><a href="/voorwaarden-privacy#privacy">Privacybeleid</a></li>
-                    <li><a href="#">Gradingsschaal</a></li>
+                    <li><a href="/over" data-i18n="footer.about">Over PokeVault</a></li>
+                    <li><a href="/voorwaarden-privacy" data-i18n="footer.terms">Algemene voorwaarden</a></li>
+                    <li><a href="/voorwaarden-privacy#privacy" data-i18n="footer.privacy">Privacybeleid</a></li>
+                    <li><a href="#" data-i18n="footer.grading">Gradingsschaal</a></li>
                 </ul>
             </div>
             <div class="footer-col">
-                <h4>Betaalmethoden</h4>
-                <div class="footer-payments" aria-label="Geaccepteerde betaalmethoden">
+                <h4 data-i18n="footer.payments">Betaalmethoden</h4>
+                <div class="footer-payments" data-i18n-aria="footer.paymentsAria" aria-label="Geaccepteerde betaalmethoden">
                     <img src="/assets/payments/ideal.svg" alt="iDEAL" width="48" height="32">
                     <img src="/assets/payments/bancontact.svg" alt="Bancontact" width="72" height="32">
                     <img src="/assets/payments/visa.svg" alt="Visa" width="48" height="32">
@@ -173,10 +177,11 @@
             </div>
         </div>
         <div class="footer-bottom">
-            <p>&copy; 2026 PokeVault. Spoelsterstraat 41, Haaksbergen. KvK: 08185063</p>
+            <p data-i18n="footer.copyright">&copy; 2026 PokeVault. Spoelsterstraat 41, Haaksbergen. KvK: 08185063</p>
         </div>
     </footer>
 
+    <script src="/js/i18n.js"></script>
     <script src="/js/cart.js"></script>
     <script src="/js/contact.js"></script>
 </body>

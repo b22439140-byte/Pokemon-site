@@ -1,20 +1,26 @@
-const CATEGORY_HERO_COPY = {
-    pokemon: 'Alle Pokémon producten — sealed, singles en meer.',
-    boxen: 'Elite Trainer Boxes, booster boxes en collectieboxen.',
-    boosters: 'Losse boosters en booster packs uit lopende en oudere sets.',
-    tins: 'Tins en metalen collectieverpakkingen.',
-    blisters: 'Blister packs en mini-collecties.',
-    'losse-kaarten': 'Singles en losse kaarten, klaar voor je deck of verzameling.',
-    accessoires: 'Sleeves, binders, toploaders en meer.',
-    'andere-tcg': 'Yu-Gi-Oh!, Magic, Lorcana, One Piece en andere TCG’s.',
-    lego: 'LEGO sets met Pokémon en verzamelthema.',
-    sale: 'Aanbiedingen en afgeprijsde producten.'
+const CATEGORY_HERO_KEYS = {
+    pokemon: 'aanbod.hero.pokemon',
+    boxen: 'aanbod.hero.boxen',
+    boosters: 'aanbod.hero.boosters',
+    tins: 'aanbod.hero.tins',
+    blisters: 'aanbod.hero.blisters',
+    'losse-kaarten': 'aanbod.hero.singles',
+    accessoires: 'aanbod.hero.accessories',
+    'andere-tcg': 'aanbod.hero.otherTcg',
+    lego: 'aanbod.hero.lego',
+    sale: 'aanbod.hero.sale'
 };
 
+function badgeLabel(badge) {
+    const keys = { sale: 'badge.sale', preorder: 'badge.preorder', en: 'badge.en' };
+    if (!badge || !keys[badge]) return '';
+    return typeof t === 'function' ? t(keys[badge]) : badge;
+}
+
 function renderProductCard(product) {
-    const badgeLabels = { sale: 'Sale −15%', preorder: 'Pre-order', en: 'EN' };
-    const badgeHtml = product.badge && badgeLabels[product.badge]
-        ? `<span class="badge ${product.badge}">${badgeLabels[product.badge]}</span>`
+    const label = badgeLabel(product.badge);
+    const badgeHtml = label
+        ? `<span class="badge ${product.badge}">${label}</span>`
         : '';
 
     const oldPriceHtml = product.oldPrice
@@ -27,6 +33,12 @@ function renderProductCard(product) {
         catLabel,
         product.psa ? psaLabel(product.psa) : ''
     ].filter(Boolean);
+
+    const qtyAria = typeof t === 'function' ? t('btn.qty') : 'Aantal';
+    const addLabel = typeof resolveButtonLabel === 'function'
+        ? resolveButtonLabel(product.buttonLabel)
+        : (product.buttonLabel || 'In winkelwagen');
+    const contactLabel = typeof t === 'function' ? t('btn.contact') : 'Neem contact op';
 
     return `
         <article class="product-card">
@@ -49,9 +61,9 @@ function renderProductCard(product) {
                  data-product-title="${product.title.replace(/"/g, '&quot;')}"
                  data-product-image="${product.image}">
                 ${product.purchaseMode === 'contact'
-                    ? `<a class="btn-contact" href="/contact?product=${encodeURIComponent(product.id)}">Neem contact op</a>`
-                    : `<input type="number" class="qty-input" value="1" min="1" max="${product.maxQty}" data-price="${product.price}" aria-label="Aantal">
-                       <button type="button" class="btn-add">${product.buttonLabel || 'In winkelwagen'}</button>`}
+                    ? `<a class="btn-contact" href="/contact?product=${encodeURIComponent(product.id)}">${contactLabel}</a>`
+                    : `<input type="number" class="qty-input" value="1" min="1" max="${product.maxQty}" data-price="${product.price}" aria-label="${qtyAria}">
+                       <button type="button" class="btn-add">${addLabel}</button>`}
             </div>
         </article>
     `;
@@ -59,7 +71,8 @@ function renderProductCard(product) {
 
 function renderProductGrid(container, products) {
     if (products.length === 0) {
-        container.innerHTML = '<p class="empty-state">Geen producten gevonden. Probeer een andere filter of zoekterm.</p>';
+        const empty = typeof t === 'function' ? t('aanbod.empty') : 'Geen producten gevonden. Probeer een andere filter of zoekterm.';
+        container.innerHTML = `<p class="empty-state">${empty}</p>`;
         return;
     }
     container.innerHTML = products.map(renderProductCard).join('');
@@ -135,8 +148,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         await loadProducts();
     } catch (err) {
-        grid.innerHTML = '<p class="empty-state">Producten konden niet worden geladen. Start de server met <code>npm start</code>.</p>';
-        if (countEl) countEl.textContent = '0 producten';
+        const msg = typeof t === 'function' ? t('aanbod.loadError') : 'Producten konden niet worden geladen.';
+        grid.innerHTML = `<p class="empty-state">${msg}</p>`;
+        if (countEl) countEl.textContent = typeof t === 'function' ? t('aanbod.count', { n: 0 }) : '0 producten';
         return;
     }
 
@@ -190,16 +204,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function updateHero(category) {
-        const label = category && category !== 'all' ? categoryLabel(category) : 'Aanbod';
+        const tr = typeof t === 'function' ? t : (k) => k;
+        const label = category && category !== 'all' ? categoryLabel(category) : tr('aanbod.heroTitle');
         if (heroTitle) heroTitle.textContent = label;
         if (heroText) {
-            heroText.textContent = category && category !== 'all' && CATEGORY_HERO_COPY[category]
-                ? CATEGORY_HERO_COPY[category]
-                : 'Blader door ons volledige assortiment. Filter op categorie, set of prijs — alles direct uit voorraad of pre-order.';
+            const heroKey = category && category !== 'all' ? CATEGORY_HERO_KEYS[category] : null;
+            heroText.textContent = heroKey
+                ? tr(heroKey)
+                : tr('aanbod.heroText');
         }
         document.title = category && category !== 'all'
-            ? `${label} — PokeVault`
-            : 'Aanbod — PokeVault';
+            ? tr('aanbod.titleCat', { label })
+            : tr('aanbod.titleDefault');
     }
 
     function updateGrid() {
@@ -212,11 +228,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             sort: sortSelect.value
         });
 
-        countEl.textContent = `${products.length} product${products.length !== 1 ? 'en' : ''}`;
+        const tr = typeof t === 'function' ? t : (k, v) => String(v?.n ?? 0);
+        countEl.textContent = products.length === 1
+            ? tr('aanbod.countOne', { n: products.length })
+            : tr('aanbod.count', { n: products.length });
         if (headingEl) {
             headingEl.textContent = category !== 'all'
                 ? categoryLabel(category)
-                : 'Alle producten';
+                : tr('aanbod.headingAllProducts');
         }
         updateHero(category);
         setActiveCategoryNav(category !== 'all' ? category : null);
@@ -230,4 +249,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     updateGrid();
+
+    window.addEventListener('pokevault:langchange', () => {
+        if (typeof applyI18n === 'function') applyI18n(document);
+        updateGrid();
+    });
 });

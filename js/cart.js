@@ -4,6 +4,7 @@ function formatEuro(amount) {
 
 const Cart = {
     items: [],
+    _shippingFreeFrom: 100,
 
     load() {
         try {
@@ -54,16 +55,31 @@ const Cart = {
         if (cartTotalEl) cartTotalEl.textContent = formatEuro(totalPrice);
     },
 
+    updateShippingNote() {
+        const note = document.getElementById('cart-shipping-note');
+        if (!note || typeof t !== 'function') return;
+        const freeFrom = this._shippingFreeFrom;
+        if (freeFrom === 0) {
+            note.textContent = t('cart.shippingFree');
+        } else {
+            note.textContent = t('cart.shippingFrom', {
+                amount: freeFrom.toFixed(2).replace('.', ',')
+            });
+        }
+    },
+
     render() {
         const container = document.getElementById('cart-items');
         if (!container) return;
+
+        const tr = typeof t === 'function' ? t : (k) => k;
 
         if (this.items.length === 0) {
             container.innerHTML = `
                 <div class="cart-empty">
                     <span class="cart-empty-icon" aria-hidden="true">🛒</span>
-                    <p>Je winkelwagen is leeg</p>
-                    <a href="/aanbod" class="cart-empty-link">Bekijk ons aanbod</a>
+                    <p>${tr('cart.empty')}</p>
+                    <a href="/aanbod" class="cart-empty-link">${tr('cart.emptyLink')}</a>
                 </div>
             `;
         } else {
@@ -76,7 +92,7 @@ const Cart = {
                         <p class="cart-item-title">${item.title}</p>
                         <p class="cart-item-price">${formatEuro(item.price)} × ${item.quantity}</p>
                     </div>
-                    <button class="cart-item-remove" aria-label="Verwijderen" data-remove="${item.id}">×</button>
+                    <button class="cart-item-remove" aria-label="${tr('cart.remove')}" data-remove="${item.id}">×</button>
                 </div>
             `).join('');
         }
@@ -87,7 +103,25 @@ const Cart = {
         const checkoutBtn = document.getElementById('cart-checkout');
         if (checkoutBtn) {
             checkoutBtn.disabled = this.items.length === 0;
+            checkoutBtn.textContent = tr('cart.checkout');
         }
+
+        const continueBtn = document.getElementById('cart-continue');
+        if (continueBtn) continueBtn.textContent = tr('cart.continue');
+
+        const titleEl = document.querySelector('.cart-drawer-header h2');
+        if (titleEl) titleEl.textContent = tr('cart.title');
+
+        const totalLabel = document.querySelector('.cart-subtotal-row span');
+        if (totalLabel) totalLabel.textContent = tr('cart.total');
+
+        const closeBtn = document.getElementById('cart-close');
+        if (closeBtn) closeBtn.setAttribute('aria-label', tr('cart.close'));
+
+        const drawer = document.getElementById('cart-drawer');
+        if (drawer) drawer.setAttribute('aria-label', tr('cart.aria'));
+
+        this.updateShippingNote();
     },
 
     open() {
@@ -139,22 +173,24 @@ function getProductDataFromButton(button) {
 function injectCartDrawer() {
     if (document.getElementById('cart-drawer')) return;
 
+    const tr = typeof t === 'function' ? t : (k, fallback) => fallback || k;
+
     document.body.insertAdjacentHTML('beforeend', `
         <div class="cart-overlay" id="cart-overlay" aria-hidden="true"></div>
-        <aside class="cart-drawer" id="cart-drawer" aria-label="Winkelwagen">
+        <aside class="cart-drawer" id="cart-drawer" aria-label="${tr('cart.aria', 'Winkelwagen')}">
             <div class="cart-drawer-header">
-                <h2>Winkelwagen</h2>
-                <button type="button" class="cart-close" id="cart-close" aria-label="Sluiten">×</button>
+                <h2>${tr('cart.title', 'Winkelwagen')}</h2>
+                <button type="button" class="cart-close" id="cart-close" aria-label="${tr('cart.close', 'Sluiten')}">×</button>
             </div>
             <div class="cart-drawer-body" id="cart-items"></div>
             <div class="cart-drawer-footer">
                 <div class="cart-subtotal-row">
-                    <span>Totaal</span>
+                    <span>${tr('cart.total', 'Totaal')}</span>
                     <strong id="cart-subtotal">€0,00</strong>
                 </div>
-                <p class="cart-shipping-note" id="cart-shipping-note">Wereldwijde verzending · gratis vanaf €100 (NL/BE)</p>
-                <button type="button" class="btn-checkout" id="cart-checkout">Afrekenen</button>
-                <button type="button" class="btn-continue" id="cart-continue">Verder winkelen</button>
+                <p class="cart-shipping-note" id="cart-shipping-note">${tr('cart.shippingNote', 'Wereldwijde verzending · gratis vanaf €100 (NL/BE)')}</p>
+                <button type="button" class="btn-checkout" id="cart-checkout">${tr('cart.checkout', 'Afrekenen')}</button>
+                <button type="button" class="btn-continue" id="cart-continue">${tr('cart.continue', 'Verder winkelen')}</button>
             </div>
         </aside>
     `);
@@ -172,13 +208,11 @@ function initCart() {
     fetch('/api/shipping')
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
-            const note = document.getElementById('cart-shipping-note');
-            if (!note || !data) return;
+            if (!data) return;
             const freeFrom = Number(data.freeFromDomestic);
             if (!Number.isFinite(freeFrom) || freeFrom < 0) return;
-            note.textContent = freeFrom === 0
-                ? 'Wereldwijde verzending · gratis verzending (NL/BE)'
-                : `Wereldwijde verzending · gratis vanaf €${freeFrom.toFixed(2).replace('.', ',')} (NL/BE)`;
+            Cart._shippingFreeFrom = freeFrom;
+            Cart.updateShippingNote();
         })
         .catch(() => { /* keep default note */ });
 
@@ -218,7 +252,7 @@ function initCart() {
         Cart.open();
 
         const originalContent = button.innerHTML;
-        button.innerHTML = '✓ Toegevoegd';
+        button.innerHTML = typeof t === 'function' ? t('btn.added') : '✓ Toegevoegd';
         button.style.backgroundColor = '#10b981';
 
         setTimeout(() => {
@@ -227,6 +261,10 @@ function initCart() {
             const qtyInput = button.closest('.product-card, .product-detail-purchase')?.querySelector('.qty-input');
             if (qtyInput) qtyInput.value = 1;
         }, 1500);
+    });
+
+    window.addEventListener('pokevault:langchange', () => {
+        Cart.render();
     });
 }
 

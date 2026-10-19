@@ -9,6 +9,10 @@
 
     let shippingConfig = { ...DEFAULT_SHIPPING };
 
+    function tr(key, vars) {
+        return typeof t === 'function' ? t(key, vars) : key;
+    }
+
     function formatEuro(amount) {
         return '€' + Number(amount).toFixed(2).replace('.', ',');
     }
@@ -43,18 +47,24 @@
         const domestic = domesticSet().has(country);
         if (shipping === 0) {
             note.textContent = domestic
-                ? 'Gratis verzending binnen NL/BE. Na bevestigen rond je de betaling af.'
-                : `Gratis internationale verzending vanaf ${formatEuro(shippingConfig.freeFromInternational)}. Na bevestigen rond je de betaling af.`;
+                ? tr('checkout.noteFreeDomestic')
+                : tr('checkout.noteFreeIntlFrom', { amount: formatEuro(shippingConfig.freeFromInternational) });
         } else if (domestic) {
             const remaining = shippingConfig.freeFromDomestic - subtotal;
             note.textContent = remaining > 0
-                ? `Verzendkosten ${formatEuro(shippingConfig.feeDomestic)}. Nog ${formatEuro(remaining)} tot gratis verzending (NL/BE).`
-                : 'Gratis verzending binnen NL/BE. Na bevestigen rond je de betaling af.';
+                ? tr('checkout.noteDomesticRemaining', {
+                    fee: formatEuro(shippingConfig.feeDomestic),
+                    remaining: formatEuro(remaining)
+                })
+                : tr('checkout.noteFreeDomestic');
         } else {
             const remaining = shippingConfig.freeFromInternational - subtotal;
             note.textContent = remaining > 0
-                ? `Internationale verzending ${formatEuro(shippingConfig.feeInternational)}. Nog ${formatEuro(remaining)} tot gratis verzending wereldwijd.`
-                : 'Gratis internationale verzending. Na bevestigen rond je de betaling af.';
+                ? tr('checkout.noteIntlRemaining', {
+                    fee: formatEuro(shippingConfig.feeInternational),
+                    remaining: formatEuro(remaining)
+                })
+                : tr('checkout.noteFreeIntl');
         }
     }
 
@@ -96,7 +106,7 @@
 
         document.getElementById('checkout-subtotal').textContent = formatEuro(subtotal);
         document.getElementById('checkout-shipping').textContent =
-            shipping === 0 ? 'Gratis' : formatEuro(shipping);
+            shipping === 0 ? tr('checkout.free') : formatEuro(shipping);
         document.getElementById('checkout-total').textContent = formatEuro(total);
         updateNote(subtotal, country, shipping);
     }
@@ -134,7 +144,7 @@
 
         Cart.load();
         if (!Cart.items.length) {
-            errorEl.textContent = 'Je winkelwagen is leeg.';
+            errorEl.textContent = tr('checkout.emptyError');
             errorEl.classList.add('visible');
             return;
         }
@@ -164,8 +174,8 @@
 
         submitBtn.disabled = true;
         submitBtn.textContent = paymentMethod === 'crypto'
-            ? 'Bestelling plaatsen…'
-            : 'Betaling voorbereiden…';
+            ? tr('checkout.placing')
+            : tr('checkout.preparing');
 
         try {
             const response = await fetch('/api/checkout', {
@@ -175,7 +185,7 @@
             });
             const data = await response.json().catch(() => ({}));
             if (!response.ok) {
-                throw new Error(data.error || 'Kon betaling niet starten.');
+                throw new Error(data.error || tr('checkout.startError'));
             }
 
             const clearCart = () => {
@@ -185,19 +195,16 @@
                 Cart.updateHeader();
             };
 
-            // Always stay on this origin for order pages (never follow absolute orderUrl —
-            // that can send customers to a stale PUBLIC_BASE_URL / other Render host).
             const localOrderPath = `/bestelling?order=${encodeURIComponent(data.orderId)}`;
 
             if (data.paymentMethod === 'bunq') {
                 if (!data.paymentUrl) {
-                    throw new Error('Geen betaallink ontvangen.');
+                    throw new Error(tr('checkout.noPayLink'));
                 }
                 try {
                     sessionStorage.setItem('pokevault-pending-order', data.orderId);
                 } catch (_) { /* ignore */ }
                 clearCart();
-                // Go straight to bunq.me / iDEAL
                 window.location.href = data.paymentUrl;
                 return;
             }
@@ -205,10 +212,10 @@
             clearCart();
             window.location.href = localOrderPath;
         } catch (err) {
-            errorEl.textContent = err.message || 'Er ging iets mis.';
+            errorEl.textContent = err.message || tr('checkout.genericError');
             errorEl.classList.add('visible');
             submitBtn.disabled = false;
-            submitBtn.textContent = 'Doorgaan naar betalen';
+            submitBtn.textContent = tr('checkout.submit');
         }
     }
 
@@ -219,5 +226,13 @@
         if (form) form.addEventListener('submit', submitCheckout);
         const country = document.getElementById('country');
         if (country) country.addEventListener('change', renderSummary);
+
+        window.addEventListener('pokevault:langchange', () => {
+            renderSummary();
+            const submitBtn = document.getElementById('checkout-submit');
+            if (submitBtn && !submitBtn.disabled) {
+                submitBtn.textContent = tr('checkout.submit');
+            }
+        });
     });
 })();

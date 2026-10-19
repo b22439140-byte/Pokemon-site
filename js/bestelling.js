@@ -2,6 +2,14 @@
     const MAX_POLLS = 40;
     const POLL_MS = 3000;
 
+    let lastView = null;
+    let lastOrder = null;
+    let lastAttempts = 0;
+
+    function tr(key, vars) {
+        return typeof t === 'function' ? t(key, vars) : key;
+    }
+
     function formatEuro(amount) {
         return '€' + Number(amount).toFixed(2).replace('.', ',');
     }
@@ -41,12 +49,14 @@
         const response = await fetch(`/api/orders/${encodeURIComponent(orderId)}`);
         const data = await response.json().catch(() => ({}));
         if (!response.ok) {
-            throw new Error(data.error || 'Bestelling niet gevonden.');
+            throw new Error(data.error || tr('order.notFoundError'));
         }
         return data;
     }
 
     function renderPaid(order) {
+        lastView = 'paid';
+        lastOrder = order;
         if (typeof Cart !== 'undefined') {
             Cart.items = [];
             Cart.save();
@@ -56,76 +66,116 @@
 
         setStatus({
             paid: true,
-            label: 'Betaling ontvangen',
-            detail: 'Bedankt! We gaan je bestelling zo snel mogelijk verzenden.',
-            hero: 'Je bestelling is betaald.',
+            label: tr('order.paidLabel'),
+            detail: tr('order.paidDetail'),
+            hero: tr('order.paidHero'),
             metaHtml: `
-                <p><strong>Bestelnummer:</strong> ${escapeHtml(order.id)}</p>
-                <p><strong>Totaal:</strong> ${formatEuro(order.total)}</p>
+                <p><strong>${tr('order.orderNumber')}</strong> ${escapeHtml(order.id)}</p>
+                <p><strong>${tr('order.total')}</strong> ${formatEuro(order.total)}</p>
             `,
             actionsHtml: `
-                <a class="btn-submit checkout-empty-link" href="/aanbod">Verder winkelen</a>
-                <a class="order-secondary-link" href="/contact">Vragen? Neem contact op</a>
+                <a class="btn-submit checkout-empty-link" href="/aanbod">${tr('order.continue')}</a>
+                <a class="order-secondary-link" href="/contact">${tr('order.questions')}</a>
             `
         });
     }
 
     function renderCryptoPending(order) {
+        lastView = 'crypto';
+        lastOrder = order;
         const address = order.crypto?.address;
         const network = order.crypto?.network || 'BTC / ETH / USDT';
         const walletBlock = address
-            ? `<p><strong>Netwerk:</strong> ${escapeHtml(network)}</p>
-               <p><strong>Wallet:</strong> <code class="crypto-wallet">${escapeHtml(address)}</code></p>
-               <p>Stuur het exacte bedrag van <strong>${formatEuro(order.total)}</strong> en vermeld je bestelnummer in de memo/notitie indien mogelijk.</p>`
-            : `<p>We sturen de crypto-betaalinstructies (BTC, ETH of USDT) naar <strong>${escapeHtml(order.customer?.email || 'je e-mailadres')}</strong>. Vermeld bij vragen altijd je bestelnummer.</p>`;
+            ? `<p><strong>${tr('order.network')}</strong> ${escapeHtml(network)}</p>
+               <p><strong>${tr('order.wallet')}</strong> <code class="crypto-wallet">${escapeHtml(address)}</code></p>
+               <p>${tr('order.cryptoSend', { amount: formatEuro(order.total) })}</p>`
+            : `<p>${tr('order.cryptoEmail', { email: escapeHtml(order.customer?.email || tr('order.yourEmail')) })}</p>`;
 
         setStatus({
-            label: 'Wachten op crypto-betaling',
-            detail: 'Je bestelling is geplaatst. Rond de betaling af met crypto — daarna verzenden we zo snel mogelijk.',
-            hero: 'Betaal met crypto om af te ronden.',
+            label: tr('order.cryptoLabel'),
+            detail: tr('order.cryptoDetail'),
+            hero: tr('order.cryptoHero'),
             metaHtml: `
-                <p><strong>Bestelnummer:</strong> ${escapeHtml(order.id)}</p>
-                <p><strong>Totaal:</strong> ${formatEuro(order.total)}</p>
-                <p><strong>Betaalmethode:</strong> Crypto (${escapeHtml(network)})</p>
+                <p><strong>${tr('order.orderNumber')}</strong> ${escapeHtml(order.id)}</p>
+                <p><strong>${tr('order.total')}</strong> ${formatEuro(order.total)}</p>
+                <p><strong>${tr('order.paymentMethod')}</strong> Crypto (${escapeHtml(network)})</p>
                 ${walletBlock}
             `,
             actionsHtml: `
-                <a class="btn-submit checkout-empty-link" href="/contact?order=${encodeURIComponent(order.id)}">Contact over betaling</a>
-                <a class="order-secondary-link" href="/aanbod">Verder winkelen</a>
+                <a class="btn-submit checkout-empty-link" href="/contact?order=${encodeURIComponent(order.id)}">${tr('order.cryptoContact')}</a>
+                <a class="order-secondary-link" href="/aanbod">${tr('order.continue')}</a>
             `
         });
     }
 
     function renderPending(order, attempts) {
+        lastOrder = order;
+        lastAttempts = attempts;
         if (order.paymentMethod === 'crypto') {
             renderCryptoPending(order);
             return;
         }
 
+        lastView = 'pending';
         const payLink = order.paymentUrl
-            ? `<a class="btn-submit checkout-empty-link" href="${escapeHtml(order.paymentUrl)}">Opnieuw openen in bunq.me</a>`
+            ? `<a class="btn-submit checkout-empty-link" href="${escapeHtml(order.paymentUrl)}">${tr('order.reopenBunq')}</a>`
             : '';
 
         setStatus({
-            label: attempts >= MAX_POLLS ? 'Nog niet bevestigd' : 'Wachten op betaling',
+            label: attempts >= MAX_POLLS ? tr('order.timeoutLabel') : tr('order.pendingLabel'),
             detail: attempts >= MAX_POLLS
-                ? 'Als je al hebt betaald, kan de bevestiging even duren. Vernieuw deze pagina over een minuut, of open de betaallink opnieuw.'
-                : 'Rond je betaling af op bunq.me. Deze pagina werkt automatisch bij.',
-            hero: 'Nog even je betaling afronden…',
+                ? tr('order.timeoutDetail')
+                : tr('order.pendingDetail'),
+            hero: tr('order.pendingHero'),
             metaHtml: `
-                <p><strong>Bestelnummer:</strong> ${escapeHtml(order.id)}</p>
-                <p><strong>Totaal:</strong> ${formatEuro(order.total)}</p>
+                <p><strong>${tr('order.orderNumber')}</strong> ${escapeHtml(order.id)}</p>
+                <p><strong>${tr('order.total')}</strong> ${formatEuro(order.total)}</p>
             `,
             actionsHtml: `
                 ${payLink}
-                <a class="order-secondary-link" href="/contact">Hulp nodig?</a>
+                <a class="order-secondary-link" href="/contact">${tr('order.needHelp')}</a>
             `
         });
     }
 
+    function renderNotFound(message) {
+        lastView = 'notfound';
+        setStatus({
+            label: tr('order.notFoundLabel'),
+            detail: message || tr('order.notFoundDetail'),
+            hero: tr('order.notFoundHero'),
+            actionsHtml: `<a class="btn-submit checkout-empty-link" href="/aanbod">${tr('order.backToShop')}</a>`
+        });
+    }
+
+    function renderNoOrder() {
+        lastView = 'noorder';
+        setStatus({
+            label: tr('order.noOrderLabel'),
+            detail: tr('order.noOrderDetail'),
+            hero: tr('order.noOrderHero'),
+            actionsHtml: `<a class="btn-submit checkout-empty-link" href="/aanbod">${tr('order.toShop')}</a>`
+        });
+    }
+
+    function reapplyLastView() {
+        if (lastView === 'paid' && lastOrder) renderPaid(lastOrder);
+        else if (lastView === 'crypto' && lastOrder) renderCryptoPending(lastOrder);
+        else if (lastView === 'pending' && lastOrder) renderPending(lastOrder, lastAttempts);
+        else if (lastView === 'notfound') renderNotFound();
+        else if (lastView === 'noorder') renderNoOrder();
+        else if (lastView === 'checking') {
+            setStatus({
+                label: tr('order.checkingLabel'),
+                detail: tr('order.checkingDetail'),
+                hero: tr('order.checkingHero')
+            });
+        }
+    }
+
     async function poll(orderId) {
         let attempts = 0;
-        let lastOrder = null;
+        lastView = 'checking';
 
         while (attempts < MAX_POLLS) {
             try {
@@ -135,17 +185,11 @@
                     return;
                 }
                 renderPending(lastOrder, attempts);
-                // Crypto payments are confirmed manually — no need to keep polling.
                 if (lastOrder.paymentMethod === 'crypto') {
                     return;
                 }
             } catch (err) {
-                setStatus({
-                    label: 'Bestelling niet gevonden',
-                    detail: err.message || 'Kon de bestelling niet laden.',
-                    hero: 'Er ging iets mis.',
-                    actionsHtml: `<a class="btn-submit checkout-empty-link" href="/aanbod">Terug naar aanbod</a>`
-                });
+                renderNotFound(err.message);
                 return;
             }
 
@@ -159,14 +203,11 @@
     document.addEventListener('DOMContentLoaded', () => {
         const orderId = orderIdFromUrl();
         if (!orderId) {
-            setStatus({
-                label: 'Geen bestelling',
-                detail: 'Open deze pagina via de link na het afrekenen.',
-                hero: 'Geen bestelnummer gevonden.',
-                actionsHtml: `<a class="btn-submit checkout-empty-link" href="/aanbod">Naar aanbod</a>`
-            });
+            renderNoOrder();
+            window.addEventListener('pokevault:langchange', reapplyLastView);
             return;
         }
         poll(orderId);
+        window.addEventListener('pokevault:langchange', reapplyLastView);
     });
 })();

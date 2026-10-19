@@ -10,6 +10,13 @@ function escapeHtml(str) {
         .replace(/"/g, '&quot;');
 }
 
+function tr(key, vars) {
+    return typeof t === 'function' ? t(key, vars) : key;
+}
+
+let contactProduct = null;
+let contactProductIdFallback = null;
+
 async function loadProductContext() {
     const params = new URLSearchParams(window.location.search);
     const productId = params.get('product');
@@ -24,29 +31,49 @@ async function loadProductContext() {
 
     try {
         const res = await fetch(`/api/products/${encodeURIComponent(productId)}`);
-        if (!res.ok) throw new Error('Product niet gevonden');
+        if (!res.ok) throw new Error(tr('contact.productNotFound'));
         const product = await res.json();
+        contactProduct = product;
+        contactProductIdFallback = null;
 
         productIdInput.value = product.id;
         productTitleInput.value = product.title;
-        titleEl.textContent = 'Interesse in dit product';
-        subjectSelect.value = 'interest';
+        applyProductContextUI();
         if (!messageEl.value) {
-            messageEl.placeholder = `Hallo, ik ben geïnteresseerd in “${product.title}”. …`;
+            messageEl.setAttribute('placeholder', tr('contact.messageInterest', { title: product.title }));
         }
+        subjectSelect.value = 'interest';
+    } catch {
+        contactProduct = null;
+        contactProductIdFallback = productId;
+        productIdInput.value = productId;
+        titleEl.textContent = tr('contact.productTitle');
+        subjectSelect.value = 'interest';
+        banner.hidden = true;
+    }
+}
 
+function applyProductContextUI() {
+    const banner = document.getElementById('contact-product-banner');
+    const titleEl = document.getElementById('contact-form-title');
+    const messageEl = document.getElementById('message');
+
+    if (contactProduct) {
+        titleEl.textContent = tr('contact.interestTitle');
         banner.hidden = false;
         banner.innerHTML = `
-            <img src="${escapeHtml(product.image || '')}" alt="">
+            <img src="${escapeHtml(contactProduct.image || '')}" alt="">
             <div>
-                <strong>${escapeHtml(product.title)}</strong>
-                <span>${formatEuro(product.price)} · we nemen contact met je op</span>
+                <strong>${escapeHtml(contactProduct.title)}</strong>
+                <span>${tr('contact.bannerFollowUp', { price: formatEuro(contactProduct.price) })}</span>
             </div>
         `;
-    } catch {
-        productIdInput.value = productId;
-        titleEl.textContent = 'Neem contact op over dit product';
-        subjectSelect.value = 'interest';
+        if (messageEl && !messageEl.value) {
+            messageEl.setAttribute('placeholder', tr('contact.messageInterest', { title: contactProduct.title }));
+        }
+    } else if (contactProductIdFallback) {
+        titleEl.textContent = tr('contact.productTitle');
+        if (banner) banner.hidden = true;
     }
 }
 
@@ -64,7 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
         errorEl.classList.remove('visible');
         errorEl.textContent = '';
         submitBtn.disabled = true;
-        submitBtn.textContent = 'Versturen…';
+        submitBtn.textContent = tr('contact.sending');
 
         const payload = {
             name: form.name.value.trim(),
@@ -85,7 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {
-                throw new Error(data.error || 'Versturen mislukt.');
+                throw new Error(data.error || tr('contact.sendFailed'));
             }
 
             const keptProductId = form.productId.value;
@@ -96,13 +123,28 @@ document.addEventListener('DOMContentLoaded', () => {
             if (keptProductId) {
                 form.subject.value = 'interest';
             }
+            successEl.textContent = tr('contact.success');
             successEl.classList.add('visible');
+            applyProductContextUI();
         } catch (err) {
-            errorEl.textContent = err.message || 'Er ging iets mis. Probeer het opnieuw.';
+            errorEl.textContent = err.message || tr('contact.genericError');
             errorEl.classList.add('visible');
         } finally {
             submitBtn.disabled = false;
-            submitBtn.textContent = 'Verstuur bericht';
+            submitBtn.textContent = tr('contact.submit');
         }
+    });
+
+    window.addEventListener('pokevault:langchange', () => {
+        if (!contactProduct && !contactProductIdFallback) {
+            const titleEl = document.getElementById('contact-form-title');
+            if (titleEl) titleEl.textContent = tr('contact.formTitle');
+        } else {
+            applyProductContextUI();
+        }
+        if (submitBtn && !submitBtn.disabled) {
+            submitBtn.textContent = tr('contact.submit');
+        }
+        if (successEl) successEl.textContent = tr('contact.success');
     });
 });
