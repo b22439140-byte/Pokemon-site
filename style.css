@@ -85,6 +85,24 @@ img {
     color: white;
 }
 
+.whatsapp-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: #86efac !important;
+    font-weight: 600;
+}
+
+.whatsapp-link svg {
+    width: 0.95rem;
+    height: 0.95rem;
+    flex-shrink: 0;
+}
+
+.whatsapp-link:hover {
+    color: #bbf7d0 !important;
+}
+
 .lang-switch {
     display: inline-flex;
     align-items: center;
