@@ -34,6 +34,9 @@ const LEGACY_CATEGORY_MAP = {
 };
 
 function categoryLabel(value) {
+    if (value === 'preorder') {
+        return typeof t === 'function' ? t('cat.preorder') : 'Pre-order';
+    }
     const found = PRODUCT_CATEGORIES.find((c) => c.value === value);
     if (!found) return value || '—';
     if (found.labelKey && typeof t === 'function') return t(found.labelKey);

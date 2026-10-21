@@ -30,6 +30,7 @@ const I18N_STRINGS = {
         'cat.otherTcg': 'Andere TCG',
         'cat.lego': 'LEGO',
         'cat.sale': 'Sale',
+        'cat.preorder': 'Pre-order',
         'psa.none': 'Geen PSA',
 
         'footer.blurb': 'Een webshop van collectors, voor collectors. Sealed Pokémon, singles en tafel-TCG’s — eerlijke conditie en snelle verzending vanuit Nederland.',
@@ -129,6 +130,7 @@ const I18N_STRINGS = {
         'aanbod.hero.otherTcg': 'Yu-Gi-Oh!, Magic, Lorcana, One Piece en andere TCG’s.',
         'aanbod.hero.lego': 'LEGO sets met Pokémon en verzamelthema.',
         'aanbod.hero.sale': 'Aanbiedingen en afgeprijsde producten.',
+        'aanbod.hero.preorder': 'Reserveer producten die binnenkort binnenkomen.',
 
         'product.title': 'Product — PokeVault',
         'product.notFoundTitle': 'Product niet gevonden — PokeVault',
@@ -470,6 +472,7 @@ const I18N_STRINGS = {
         'cat.otherTcg': 'Other TCG',
         'cat.lego': 'LEGO',
         'cat.sale': 'Sale',
+        'cat.preorder': 'Pre-order',
         'psa.none': 'No PSA',
 
         'footer.blurb': 'A webshop by collectors, for collectors. Sealed Pokémon, singles and tabletop TCGs — honest condition and fast shipping from the Netherlands.',
@@ -569,6 +572,7 @@ const I18N_STRINGS = {
         'aanbod.hero.otherTcg': 'Yu-Gi-Oh!, Magic, Lorcana, One Piece and other TCGs.',
         'aanbod.hero.lego': 'LEGO sets with Pokémon and collector themes.',
         'aanbod.hero.sale': 'Deals and discounted products.',
+        'aanbod.hero.preorder': 'Reserve products that are arriving soon.',
 
         'product.title': 'Product — PokeVault',
         'product.notFoundTitle': 'Product not found — PokeVault',

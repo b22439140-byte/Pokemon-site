@@ -8,7 +8,8 @@ const CATEGORY_HERO_KEYS = {
     accessoires: 'aanbod.hero.accessories',
     'andere-tcg': 'aanbod.hero.otherTcg',
     lego: 'aanbod.hero.lego',
-    sale: 'aanbod.hero.sale'
+    sale: 'aanbod.hero.sale',
+    preorder: 'aanbod.hero.preorder'
 };
 
 function badgeLabel(badge) {
@@ -96,6 +97,8 @@ function filterProducts({ category, psa, set, search, sort }) {
     if (category && category !== 'all') {
         if (category === 'sale') {
             filtered = filtered.filter((p) => p.category === 'sale' || p.badge === 'sale');
+        } else if (category === 'preorder') {
+            filtered = filtered.filter((p) => p.badge === 'preorder');
         } else if (category === 'pokemon') {
             filtered = filtered.filter((p) => POKEMON_CATEGORIES.has(p.category));
         } else {
