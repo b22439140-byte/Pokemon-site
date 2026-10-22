@@ -28,12 +28,18 @@ const viewProducts = document.getElementById('view-products');
 const viewContacts = document.getElementById('view-contacts');
 const viewOrders = document.getElementById('view-orders');
 const viewShipping = document.getElementById('view-shipping');
+const viewDiscounts = document.getElementById('view-discounts');
 const tabProducts = document.getElementById('tab-products');
 const tabContacts = document.getElementById('tab-contacts');
 const tabOrders = document.getElementById('tab-orders');
 const tabShipping = document.getElementById('tab-shipping');
+const tabDiscounts = document.getElementById('tab-discounts');
 const shippingForm = document.getElementById('shipping-form');
 const shippingStatus = document.getElementById('shipping-status');
+const discountForm = document.getElementById('discount-form');
+const discountStatus = document.getElementById('discount-status');
+const discountsTbody = document.getElementById('discounts-tbody');
+const discountsTotal = document.getElementById('discounts-total');
 
 /** @type {string[]} */
 let keptImages = [];
@@ -207,7 +213,8 @@ function switchView(view) {
     viewOrders.hidden = view !== 'orders';
     viewContacts.hidden = view !== 'contacts';
     viewShipping.hidden = view !== 'shipping';
-    [tabProducts, tabOrders, tabContacts, tabShipping].forEach((tab) => {
+    if (viewDiscounts) viewDiscounts.hidden = view !== 'discounts';
+    [tabProducts, tabOrders, tabContacts, tabShipping, tabDiscounts].forEach((tab) => {
         if (!tab) return;
         const active = tab.dataset.view === view;
         tab.classList.toggle('is-active', active);
@@ -504,6 +511,7 @@ function renderOrders() {
                     <div class="order-details-pay">
                         ${escapeHtml(paymentMethodLabel(o.paymentMethod))}
                         ${o.shipping ? ` · Verzending ${formatEuro(o.shipping)}` : ''}
+                        ${o.discount > 0 ? ` · Korting ${formatEuro(o.discount)}${o.discountCode ? ` (${escapeHtml(o.discountCode)})` : ''}` : ''}
                         ${o.paidAt ? ` · Betaald ${escapeHtml(formatDateTime(o.paidAt))}` : ''}
                     </div>
                     ${actions.length ? `<div class="admin-row-actions">${actions.join('')}</div>` : ''}
@@ -612,28 +620,149 @@ async function loadShipping() {
     return settings;
 }
 
-async function loadDashboard() {
-    await Promise.all([loadProducts(), loadOrders(), loadContacts(), loadShipping()]);
+function discountValueLabel(d) {
+    if (d.type === 'fixed') return formatEuro(d.value);
+    return `${Number(d.value)}%`;
 }
+
+function discountStatusLabel(d) {
+    if (!d.active) return { text: 'Uit', className: 'is-done' };
+    if (d.expiresAt && new Date(d.expiresAt).getTime() < Date.now()) {
+        return { text: 'Verlopen', className: 'is-done' };
+    }
+    if (d.maxUses != null && d.usedCount >= d.maxUses) {
+        return { text: 'Op', className: 'is-done' };
+    }
+    return { text: 'Actief', className: 'is-new' };
+}
+
+function formatExpiresInput(iso) {
+    if (!iso) return '';
+    try {
+        return new Date(iso).toISOString().slice(0, 10);
+    } catch {
+        return '';
+    }
+}
+
+function resetDiscountForm() {
+    discountForm.reset();
+    document.getElementById('discount-edit-id').value = '';
+    document.getElementById('discount-type').value = 'percent';
+    document.getElementById('discount-min-subtotal').value = '0';
+    document.getElementById('discount-active').checked = true;
+    document.getElementById('btn-save-discount').textContent = 'Code opslaan';
+    updateDiscountValueHint();
+    setStatus(discountStatus, '');
+}
+
+function openDiscountForm(discount) {
+    discountForm.hidden = false;
+    if (!discount) {
+        resetDiscountForm();
+        discountForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+    }
+    document.getElementById('discount-edit-id').value = discount.id;
+    document.getElementById('discount-code').value = discount.code || '';
+    document.getElementById('discount-type').value = discount.type === 'fixed' ? 'fixed' : 'percent';
+    document.getElementById('discount-value').value = discount.value;
+    document.getElementById('discount-min-subtotal').value = discount.minSubtotal ?? 0;
+    document.getElementById('discount-max-uses').value = discount.maxUses != null ? discount.maxUses : '';
+    document.getElementById('discount-expires').value = formatExpiresInput(discount.expiresAt);
+    document.getElementById('discount-active').checked = discount.active !== false;
+    document.getElementById('btn-save-discount').textContent = 'Wijzigingen opslaan';
+    updateDiscountValueHint();
+    setStatus(discountStatus, '');
+    discountForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function updateDiscountValueHint() {
+    const hint = document.getElementById('discount-value-hint');
+    if (!hint) return;
+    const type = document.getElementById('discount-type').value;
+    hint.textContent = type === 'fixed'
+        ? 'Vast bedrag in euro’s dat van het subtotaal afgaat.'
+        : 'Bij percentage: 10 = 10% korting.';
+}
+
+function renderDiscounts(discounts) {
+    const list = Array.isArray(discounts) ? discounts : [];
+    discountsTotal.textContent = `${list.length} code${list.length !== 1 ? 's' : ''}`;
+
+    if (!list.length) {
+        discountsTbody.innerHTML = '<tr><td colspan="5">Nog geen kortingscodes. Maak er een aan.</td></tr>';
+        return;
+    }
+
+    discountsTbody.innerHTML = list.map((d) => {
+        const status = discountStatusLabel(d);
+        const used = d.maxUses != null
+            ? `${d.usedCount} / ${d.maxUses}`
+            : String(d.usedCount || 0);
+        const meta = [];
+        if (d.minSubtotal > 0) meta.push(`min. ${formatEuro(d.minSubtotal)}`);
+        if (d.expiresAt) meta.push(`tot ${escapeHtml(formatExpiresInput(d.expiresAt))}`);
+
+        return `
+        <tr data-discount-id="${escapeHtml(d.id)}">
+            <td data-label="Code">
+                <strong>${escapeHtml(d.code)}</strong>
+                ${meta.length ? `<div class="contact-meta">${meta.join(' · ')}</div>` : ''}
+            </td>
+            <td data-label="Korting">${escapeHtml(discountValueLabel(d))}</td>
+            <td data-label="Gebruikt">${escapeHtml(used)}</td>
+            <td data-label="Status">
+                <span class="contact-status ${status.className}">${status.text}</span>
+            </td>
+            <td class="admin-cell-actions" data-label="">
+                <div class="admin-row-actions">
+                    <button type="button" class="btn-secondary btn-discount-edit">Bewerken</button>
+                    <button type="button" class="btn-danger btn-discount-delete">Verwijderen</button>
+                </div>
+            </td>
+        </tr>
+        `;
+    }).join('');
+}
+
+async function loadDiscounts() {
+    const discounts = await api('/api/admin/discounts');
+    renderDiscounts(discounts);
+    return discounts;
+}
+
+async function loadDashboard() {
+    await Promise.all([loadProducts(), loadOrders(), loadContacts(), loadShipping(), loadDiscounts()]);
+}
+
+const passwordInput = document.getElementById('admin-password');
+const loginSubmitBtn = loginForm.querySelector('button[type="submit"]');
 
 loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     setStatus(loginStatus, 'Bezig…');
+    if (loginSubmitBtn) loginSubmitBtn.disabled = true;
     try {
         const data = await api('/api/admin/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                password: document.getElementById('admin-password').value
+                password: passwordInput.value
             })
         });
+        passwordInput.value = '';
         setToken(data.token);
         showDashboard();
         switchView('products');
         await loadDashboard();
         setStatus(loginStatus, '');
     } catch (err) {
+        passwordInput.value = '';
+        passwordInput.focus();
         setStatus(loginStatus, err.message, 'error');
+    } finally {
+        if (loginSubmitBtn) loginSubmitBtn.disabled = false;
     }
 });
 
@@ -644,6 +773,8 @@ document.getElementById('btn-logout').addEventListener('click', async () => {
         /* ignore */
     }
     clearToken();
+    passwordInput.value = '';
+    setStatus(loginStatus, '');
     showLogin();
 });
 
@@ -655,6 +786,10 @@ tabOrders.addEventListener('click', () => {
 tabShipping.addEventListener('click', () => {
     switchView('shipping');
     loadShipping().catch((err) => setStatus(shippingStatus, err.message, 'error'));
+});
+tabDiscounts.addEventListener('click', () => {
+    switchView('discounts');
+    loadDiscounts().catch((err) => setStatus(discountStatus, err.message, 'error'));
 });
 tabContacts.addEventListener('click', () => {
     switchView('contacts');
@@ -679,6 +814,84 @@ shippingForm.addEventListener('submit', async (e) => {
         setStatus(shippingStatus, 'Verzendkosten opgeslagen.', 'ok');
     } catch (err) {
         setStatus(shippingStatus, err.message, 'error');
+    }
+});
+
+document.getElementById('btn-new-discount').addEventListener('click', () => openDiscountForm(null));
+
+document.getElementById('btn-cancel-discount').addEventListener('click', () => {
+    discountForm.hidden = true;
+    resetDiscountForm();
+});
+
+document.getElementById('discount-type').addEventListener('change', updateDiscountValueHint);
+
+discountForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    setStatus(discountStatus, 'Opslaan…');
+    const editId = document.getElementById('discount-edit-id').value;
+    const payload = {
+        code: document.getElementById('discount-code').value,
+        type: document.getElementById('discount-type').value,
+        value: document.getElementById('discount-value').value,
+        minSubtotal: document.getElementById('discount-min-subtotal').value || 0,
+        maxUses: document.getElementById('discount-max-uses').value,
+        expiresAt: document.getElementById('discount-expires').value || null,
+        active: document.getElementById('discount-active').checked
+    };
+    try {
+        if (editId) {
+            await api(`/api/admin/discounts/${encodeURIComponent(editId)}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            setStatus(discountStatus, 'Kortingscode bijgewerkt.', 'ok');
+        } else {
+            await api('/api/admin/discounts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            setStatus(discountStatus, 'Kortingscode aangemaakt.', 'ok');
+        }
+        discountForm.hidden = true;
+        resetDiscountForm();
+        await loadDiscounts();
+    } catch (err) {
+        setStatus(discountStatus, err.message, 'error');
+    }
+});
+
+discountsTbody.addEventListener('click', async (e) => {
+    const row = e.target.closest('tr[data-discount-id]');
+    if (!row) return;
+    const id = row.dataset.discountId;
+
+    if (e.target.closest('.btn-discount-edit')) {
+        try {
+            const discounts = await api('/api/admin/discounts');
+            const discount = (discounts || []).find((d) => d.id === id);
+            if (!discount) throw new Error('Kortingscode niet gevonden.');
+            openDiscountForm(discount);
+        } catch (err) {
+            setStatus(discountStatus, err.message, 'error');
+        }
+        return;
+    }
+
+    if (e.target.closest('.btn-discount-delete')) {
+        if (!confirm('Deze kortingscode verwijderen?')) return;
+        try {
+            await api(`/api/admin/discounts/${encodeURIComponent(id)}`, { method: 'DELETE' });
+            if (document.getElementById('discount-edit-id').value === id) {
+                discountForm.hidden = true;
+                resetDiscountForm();
+            }
+            await loadDiscounts();
+        } catch (err) {
+            setStatus(discountStatus, err.message, 'error');
+        }
     }
 });
 

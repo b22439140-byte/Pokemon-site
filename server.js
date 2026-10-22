@@ -33,13 +33,42 @@ const { createBunqClient } = require('./lib/bunq');
 const mailer = require('./lib/email');
 
 const PORT = process.env.PORT || 3000;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'pokevault';
+const DEFAULT_ADMIN_PASSWORD = 'pokevault';
+const ADMIN_PASSWORD = String(process.env.ADMIN_PASSWORD || DEFAULT_ADMIN_PASSWORD);
+const IS_PRODUCTION = /^(1|true|yes|production)$/i.test(
+    String(process.env.NODE_ENV || process.env.RENDER || '').trim()
+) || Boolean(process.env.RENDER);
+const SESSION_TTL_MS = Math.max(
+    5 * 60 * 1000,
+    Number(process.env.ADMIN_SESSION_TTL_MS) || 8 * 60 * 60 * 1000
+);
+const LOGIN_MAX_ATTEMPTS = Math.max(3, Number(process.env.ADMIN_LOGIN_MAX_ATTEMPTS) || 5);
+const LOGIN_WINDOW_MS = Math.max(
+    60 * 1000,
+    Number(process.env.ADMIN_LOGIN_WINDOW_MS) || 15 * 60 * 1000
+);
+const LOGIN_LOCKOUT_MS = Math.max(
+    60 * 1000,
+    Number(process.env.ADMIN_LOGIN_LOCKOUT_MS) || 15 * 60 * 1000
+);
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
 const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash';
 const BUNQ_API_KEY = String(process.env.BUNQ_API_KEY || '').trim();
 const BUNQ_SANDBOX = /^(1|true|yes)$/i.test(String(process.env.BUNQ_SANDBOX || '').trim());
 const BUNQ_MONETARY_ACCOUNT_ID = String(process.env.BUNQ_MONETARY_ACCOUNT_ID || '').trim();
 const PUBLIC_BASE_URL = String(process.env.PUBLIC_BASE_URL || '').trim().replace(/\/$/, '');
+
+if (IS_PRODUCTION && ADMIN_PASSWORD === DEFAULT_ADMIN_PASSWORD) {
+    console.error(
+        'FATAL: ADMIN_PASSWORD staat nog op de standaardwaarde. Stel een sterk wachtwoord in via ADMIN_PASSWORD.'
+    );
+    process.exit(1);
+}
+if (ADMIN_PASSWORD.length < 10) {
+    console.warn(
+        'WAARSCHUWING: ADMIN_PASSWORD is korter dan 10 tekens. Kies een langer, uniek wachtwoord.'
+    );
+}
 // Shipping defaults — used until an admin saves settings (or as fallback).
 // Optional .env overrides only apply before the first admin save.
 function envMoney(name, fallback) {
@@ -87,6 +116,7 @@ const DATA_FILE = path.join(PERSIST_DIR, 'products.json');
 const CONTACTS_FILE = path.join(PERSIST_DIR, 'contacts.json');
 const ORDERS_FILE = path.join(PERSIST_DIR, 'orders.json');
 const SHIPPING_FILE = path.join(PERSIST_DIR, 'shipping.json');
+const DISCOUNTS_FILE = path.join(PERSIST_DIR, 'discounts.json');
 const UPLOADS_DIR = path.join(PERSIST_DIR, 'uploads');
 
 function moneyOrDefault(value, fallback) {
@@ -139,6 +169,133 @@ function shippingFor(subtotal, countryCode) {
     return subtotal >= settings.freeFromInternational ? 0 : settings.feeInternational;
 }
 
+function readDiscounts() {
+    try {
+        if (!fs.existsSync(DISCOUNTS_FILE)) return [];
+        const raw = JSON.parse(fs.readFileSync(DISCOUNTS_FILE, 'utf8'));
+        return Array.isArray(raw) ? raw.map(normalizeDiscount).filter(Boolean) : [];
+    } catch {
+        return [];
+    }
+}
+
+function writeDiscounts(discounts) {
+    fs.writeFileSync(DISCOUNTS_FILE, JSON.stringify(discounts, null, 2));
+}
+
+function normalizeDiscount(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    const code = String(raw.code || '')
+        .trim()
+        .toUpperCase()
+        .replace(/\s+/g, '');
+    if (!code || code.length > 40) return null;
+    const type = raw.type === 'fixed' ? 'fixed' : 'percent';
+    let value = Number(String(raw.value ?? '').trim().replace(',', '.'));
+    if (!Number.isFinite(value) || value <= 0) return null;
+    if (type === 'percent') {
+        value = Math.min(100, value);
+    }
+    const maxUsesRaw = raw.maxUses;
+    const maxUses =
+        maxUsesRaw == null || maxUsesRaw === ''
+            ? null
+            : Math.max(1, Math.floor(Number(maxUsesRaw)) || 0) || null;
+    const minSubtotal = moneyOrDefault(raw.minSubtotal, 0);
+    const usedCount = Math.max(0, Math.floor(Number(raw.usedCount) || 0));
+    let expiresAt = null;
+    if (raw.expiresAt) {
+        const rawExpiry = String(raw.expiresAt).trim();
+        // Date-only inputs (YYYY-MM-DD) expire at end of that day UTC.
+        const d = /^\d{4}-\d{2}-\d{2}$/.test(rawExpiry)
+            ? new Date(`${rawExpiry}T23:59:59.999Z`)
+            : new Date(rawExpiry);
+        if (!Number.isNaN(d.getTime())) expiresAt = d.toISOString();
+    }
+    return {
+        id: String(raw.id || crypto.randomBytes(8).toString('hex')),
+        code,
+        type,
+        value: Number(formatMoney(value)),
+        active: raw.active !== false,
+        maxUses,
+        usedCount,
+        minSubtotal: Number(formatMoney(minSubtotal)),
+        expiresAt,
+        createdAt: raw.createdAt || new Date().toISOString()
+    };
+}
+
+function publicDiscountView(discount) {
+    if (!discount) return null;
+    return {
+        id: discount.id,
+        code: discount.code,
+        type: discount.type,
+        value: discount.value,
+        active: discount.active,
+        maxUses: discount.maxUses,
+        usedCount: discount.usedCount,
+        minSubtotal: discount.minSubtotal,
+        expiresAt: discount.expiresAt,
+        createdAt: discount.createdAt
+    };
+}
+
+/**
+ * Validate a discount against a cart subtotal.
+ * @returns {{ ok: true, discount: object, amount: number } | { ok: false, error: string }}
+ */
+function applyDiscountCode(codeInput, subtotal) {
+    const code = String(codeInput || '')
+        .trim()
+        .toUpperCase()
+        .replace(/\s+/g, '');
+    if (!code) {
+        return { ok: false, error: 'Vul een kortingscode in.' };
+    }
+
+    const discounts = readDiscounts();
+    const discount = discounts.find((d) => d.code === code);
+    if (!discount || !discount.active) {
+        return { ok: false, error: 'Deze kortingscode is ongeldig.' };
+    }
+    if (discount.expiresAt && new Date(discount.expiresAt).getTime() < Date.now()) {
+        return { ok: false, error: 'Deze kortingscode is verlopen.' };
+    }
+    if (discount.maxUses != null && discount.usedCount >= discount.maxUses) {
+        return { ok: false, error: 'Deze kortingscode is al het maximale aantal keren gebruikt.' };
+    }
+    const cartSubtotal = Number(formatMoney(subtotal));
+    if (cartSubtotal < discount.minSubtotal) {
+        return {
+            ok: false,
+            error: `Deze code geldt vanaf €${formatMoney(discount.minSubtotal).replace('.', ',')} subtotaal.`
+        };
+    }
+
+    let amount = 0;
+    if (discount.type === 'percent') {
+        amount = cartSubtotal * (discount.value / 100);
+    } else {
+        amount = discount.value;
+    }
+    amount = Number(formatMoney(Math.min(amount, cartSubtotal)));
+    if (amount <= 0) {
+        return { ok: false, error: 'Deze kortingscode levert geen korting op.' };
+    }
+
+    return { ok: true, discount, amount };
+}
+
+function incrementDiscountUse(discountId) {
+    const discounts = readDiscounts();
+    const index = discounts.findIndex((d) => d.id === discountId);
+    if (index === -1) return;
+    discounts[index].usedCount = Math.max(0, Math.floor(Number(discounts[index].usedCount) || 0)) + 1;
+    writeDiscounts(discounts);
+}
+
 let bunqClient = null;
 function getBunqClient() {
     if (!BUNQ_API_KEY) {
@@ -168,6 +325,10 @@ if (!fs.existsSync(CONTACTS_FILE)) {
 
 if (!fs.existsSync(ORDERS_FILE)) {
     fs.writeFileSync(ORDERS_FILE, '[]');
+}
+
+if (!fs.existsSync(DISCOUNTS_FILE)) {
+    fs.writeFileSync(DISCOUNTS_FILE, '[]');
 }
 
 // Remove built-in demo products once; keep anything added via admin.
@@ -202,10 +363,87 @@ try {
 }
 
 const app = express();
+/** @type {Map<string, { createdAt: number, lastSeen: number, ip: string }>} */
 const sessions = new Map();
+/** @type {Map<string, { count: number, firstAttemptAt: number, lockedUntil: number }>} */
+const loginAttempts = new Map();
 
 // Render / Cloudflare sit behind a proxy — needed for correct https + host
 app.set('trust proxy', 1);
+
+function clientIp(req) {
+    const forwarded = String(req.headers['x-forwarded-for'] || '')
+        .split(',')[0]
+        .trim();
+    return forwarded || req.ip || req.socket?.remoteAddress || 'unknown';
+}
+
+function passwordMatches(candidate, expected) {
+    const a = Buffer.from(String(candidate), 'utf8');
+    const b = Buffer.from(String(expected), 'utf8');
+    const max = Math.max(a.length, b.length, 1);
+    const paddedA = Buffer.alloc(max);
+    const paddedB = Buffer.alloc(max);
+    a.copy(paddedA);
+    b.copy(paddedB);
+    const sameContent = crypto.timingSafeEqual(paddedA, paddedB);
+    return sameContent && a.length === b.length;
+}
+
+function getLoginGuard(ip) {
+    const now = Date.now();
+    let entry = loginAttempts.get(ip);
+    if (!entry) {
+        entry = { count: 0, firstAttemptAt: now, lockedUntil: 0 };
+        loginAttempts.set(ip, entry);
+    }
+    if (entry.lockedUntil && entry.lockedUntil <= now) {
+        entry.count = 0;
+        entry.firstAttemptAt = now;
+        entry.lockedUntil = 0;
+    }
+    if (now - entry.firstAttemptAt > LOGIN_WINDOW_MS && !entry.lockedUntil) {
+        entry.count = 0;
+        entry.firstAttemptAt = now;
+    }
+    return entry;
+}
+
+function registerFailedLogin(ip) {
+    const entry = getLoginGuard(ip);
+    entry.count += 1;
+    if (entry.count >= LOGIN_MAX_ATTEMPTS) {
+        entry.lockedUntil = Date.now() + LOGIN_LOCKOUT_MS;
+    }
+    loginAttempts.set(ip, entry);
+    return entry;
+}
+
+function clearLoginGuard(ip) {
+    loginAttempts.delete(ip);
+}
+
+function purgeExpiredSessions() {
+    const now = Date.now();
+    for (const [token, session] of sessions) {
+        const idle = now - (session.lastSeen || session.createdAt);
+        const age = now - session.createdAt;
+        if (idle > SESSION_TTL_MS || age > SESSION_TTL_MS * 2) {
+            sessions.delete(token);
+        }
+    }
+    for (const [ip, entry] of loginAttempts) {
+        if (
+            entry.lockedUntil &&
+            entry.lockedUntil <= now &&
+            now - entry.firstAttemptAt > LOGIN_WINDOW_MS
+        ) {
+            loginAttempts.delete(ip);
+        }
+    }
+}
+
+setInterval(purgeExpiredSessions, 5 * 60 * 1000).unref();
 
 function resolvePublicBaseUrl(req) {
     // Prefer the host the customer is actually on, so checkout never jumps to another domain.
@@ -346,6 +584,8 @@ function publicOrderView(order) {
         },
         items: order.items,
         subtotal: order.subtotal,
+        discount: order.discount || 0,
+        discountCode: order.discountCode || null,
         shipping: order.shipping,
         total: order.total,
         paymentUrl: order.paymentUrl || null,
@@ -513,26 +753,67 @@ function parseProductBody(body, files, existing) {
 }
 
 function requireAdmin(req, res, next) {
+    purgeExpiredSessions();
     const header = req.headers.authorization || '';
     const token = header.startsWith('Bearer ') ? header.slice(7) : '';
-    if (!token || !sessions.has(token)) {
+    const session = token ? sessions.get(token) : null;
+    if (!token || !session) {
         return res.status(401).json({ error: 'Niet ingelogd. Log opnieuw in.' });
     }
+    const now = Date.now();
+    if (now - session.lastSeen > SESSION_TTL_MS || now - session.createdAt > SESSION_TTL_MS * 2) {
+        sessions.delete(token);
+        return res.status(401).json({ error: 'Sessie verlopen. Log opnieuw in.' });
+    }
+    session.lastSeen = now;
+    req.adminToken = token;
     next();
 }
 
 app.post('/api/admin/login', (req, res) => {
-    const password = String(req.body?.password || '');
-    if (password !== ADMIN_PASSWORD) {
-        return res.status(401).json({ error: 'Onjuist wachtwoord.' });
+    const ip = clientIp(req);
+    const guard = getLoginGuard(ip);
+    const now = Date.now();
+
+    if (guard.lockedUntil && guard.lockedUntil > now) {
+        const waitSec = Math.ceil((guard.lockedUntil - now) / 1000);
+        return res.status(429).json({
+            error: `Te veel mislukte pogingen. Probeer over ${waitSec} seconden opnieuw.`,
+            retryAfter: waitSec
+        });
     }
+
+    const password = String(req.body?.password || '');
+    if (!passwordMatches(password, ADMIN_PASSWORD)) {
+        const updated = registerFailedLogin(ip);
+        if (updated.lockedUntil && updated.lockedUntil > Date.now()) {
+            const waitSec = Math.ceil((updated.lockedUntil - Date.now()) / 1000);
+            return res.status(429).json({
+                error: `Te veel mislukte pogingen. Probeer over ${waitSec} seconden opnieuw.`,
+                retryAfter: waitSec
+            });
+        }
+        const remaining = Math.max(0, LOGIN_MAX_ATTEMPTS - updated.count);
+        return res.status(401).json({
+            error:
+                remaining > 0
+                    ? `Onjuist wachtwoord. Nog ${remaining} poging${remaining === 1 ? '' : 'en'} over.`
+                    : 'Onjuist wachtwoord.'
+        });
+    }
+
+    clearLoginGuard(ip);
+    purgeExpiredSessions();
     const token = crypto.randomBytes(32).toString('hex');
-    sessions.set(token, Date.now());
-    res.json({ token });
+    sessions.set(token, { createdAt: now, lastSeen: now, ip });
+    res.json({
+        token,
+        expiresInMs: SESSION_TTL_MS
+    });
 });
 
 app.post('/api/admin/logout', requireAdmin, (req, res) => {
-    sessions.delete(req.headers.authorization.slice(7));
+    sessions.delete(req.adminToken);
     res.json({ ok: true });
 });
 
@@ -871,10 +1152,27 @@ app.post('/api/checkout', async (req, res) => {
         }
 
         const subtotal = Number(formatMoney(lineItems.reduce((sum, item) => sum + item.lineTotal, 0)));
+
+        let discountAmount = 0;
+        let discountCode = null;
+        let discountId = null;
+        const rawDiscountCode = String(req.body?.discountCode || '').trim();
+        if (rawDiscountCode) {
+            const applied = applyDiscountCode(rawDiscountCode, subtotal);
+            if (!applied.ok) {
+                return res.status(400).json({ error: applied.error });
+            }
+            discountAmount = applied.amount;
+            discountCode = applied.discount.code;
+            discountId = applied.discount.id;
+        }
+
         const shipping = Number(formatMoney(shippingFor(subtotal, address.country)));
-        const total = Number(formatMoney(subtotal + shipping));
+        const total = Number(formatMoney(subtotal - discountAmount + shipping));
         if (total <= 0) {
-            return res.status(400).json({ error: 'Totaalbedrag moet groter dan €0 zijn.' });
+            return res.status(400).json({
+                error: 'Totaalbedrag moet groter dan €0 zijn. Pas de korting of bestelling aan.'
+            });
         }
 
         const orderId = crypto.randomBytes(12).toString('hex');
@@ -890,6 +1188,8 @@ app.post('/api/checkout', async (req, res) => {
             customer: { name, email, phone: phone || null, address },
             items: lineItems,
             subtotal,
+            discount: discountAmount,
+            discountCode,
             shipping,
             total,
             bunqMeTabId: null,
@@ -919,6 +1219,14 @@ app.post('/api/checkout', async (req, res) => {
         orders.unshift(order);
         writeOrders(orders);
 
+        if (discountId) {
+            try {
+                incrementDiscountUse(discountId);
+            } catch (err) {
+                console.error('Kortingscode teller bijwerken mislukt:', err.message || err);
+            }
+        }
+
         try {
             await mailer.notifyOrderPlaced(order, { orderUrl });
             orders[0] = order;
@@ -933,6 +1241,8 @@ app.post('/api/checkout', async (req, res) => {
             orderUrl,
             paymentMethod: order.paymentMethod,
             total: order.total,
+            discount: order.discount,
+            discountCode: order.discountCode,
             status: order.status
         });
     } catch (err) {
@@ -1076,6 +1386,143 @@ app.put('/api/admin/shipping', requireAdmin, (req, res) => {
     }
 });
 
+app.post('/api/discount/validate', (req, res) => {
+    const subtotal = Number(String(req.body?.subtotal ?? '').trim().replace(',', '.'));
+    if (!Number.isFinite(subtotal) || subtotal < 0) {
+        return res.status(400).json({ error: 'Ongeldig subtotaal.' });
+    }
+    const result = applyDiscountCode(req.body?.code, subtotal);
+    if (!result.ok) {
+        return res.status(400).json({ error: result.error });
+    }
+    res.json({
+        code: result.discount.code,
+        type: result.discount.type,
+        value: result.discount.value,
+        discount: result.amount
+    });
+});
+
+app.get('/api/admin/discounts', requireAdmin, (_req, res) => {
+    res.json(readDiscounts().map(publicDiscountView));
+});
+
+app.post('/api/admin/discounts', requireAdmin, (req, res) => {
+    try {
+        const body = req.body || {};
+        const code = String(body.code || '')
+            .trim()
+            .toUpperCase()
+            .replace(/\s+/g, '');
+        if (!code || code.length > 40) {
+            return res.status(400).json({ error: 'Vul een geldige code in (max 40 tekens).' });
+        }
+        if (!/^[A-Z0-9_-]+$/i.test(code)) {
+            return res.status(400).json({
+                error: 'Code mag alleen letters, cijfers, - en _ bevatten.'
+            });
+        }
+
+        const discounts = readDiscounts();
+        if (discounts.some((d) => d.code === code)) {
+            return res.status(400).json({ error: 'Deze code bestaat al.' });
+        }
+
+        const discount = normalizeDiscount({
+            id: crypto.randomBytes(8).toString('hex'),
+            code,
+            type: body.type,
+            value: body.value,
+            active: body.active !== false && body.active !== 'false',
+            maxUses: body.maxUses === '' || body.maxUses == null ? null : body.maxUses,
+            usedCount: 0,
+            minSubtotal: body.minSubtotal,
+            expiresAt: body.expiresAt || null,
+            createdAt: new Date().toISOString()
+        });
+        if (!discount) {
+            return res.status(400).json({
+                error: 'Ongeldige korting. Kies percentage of vast bedrag met een waarde boven 0.'
+            });
+        }
+
+        discounts.unshift(discount);
+        writeDiscounts(discounts);
+        res.status(201).json(publicDiscountView(discount));
+    } catch (err) {
+        res.status(400).json({ error: err.message || 'Kon kortingscode niet opslaan.' });
+    }
+});
+
+app.put('/api/admin/discounts/:id', requireAdmin, (req, res) => {
+    try {
+        const discounts = readDiscounts();
+        const index = discounts.findIndex((d) => d.id === req.params.id);
+        if (index === -1) {
+            return res.status(404).json({ error: 'Kortingscode niet gevonden.' });
+        }
+
+        const existing = discounts[index];
+        const body = req.body || {};
+        const nextCode = body.code != null
+            ? String(body.code).trim().toUpperCase().replace(/\s+/g, '')
+            : existing.code;
+
+        if (!nextCode || nextCode.length > 40) {
+            return res.status(400).json({ error: 'Vul een geldige code in (max 40 tekens).' });
+        }
+        if (!/^[A-Z0-9_-]+$/i.test(nextCode)) {
+            return res.status(400).json({
+                error: 'Code mag alleen letters, cijfers, - en _ bevatten.'
+            });
+        }
+        if (discounts.some((d, i) => i !== index && d.code === nextCode)) {
+            return res.status(400).json({ error: 'Deze code bestaat al.' });
+        }
+
+        const discount = normalizeDiscount({
+            ...existing,
+            code: nextCode,
+            type: body.type != null ? body.type : existing.type,
+            value: body.value != null ? body.value : existing.value,
+            active: body.active !== undefined ? body.active !== false && body.active !== 'false' : existing.active,
+            maxUses:
+                body.maxUses !== undefined
+                    ? body.maxUses === '' || body.maxUses == null
+                        ? null
+                        : body.maxUses
+                    : existing.maxUses,
+            minSubtotal: body.minSubtotal != null ? body.minSubtotal : existing.minSubtotal,
+            expiresAt: body.expiresAt !== undefined ? body.expiresAt || null : existing.expiresAt,
+            usedCount: existing.usedCount,
+            id: existing.id,
+            createdAt: existing.createdAt
+        });
+        if (!discount) {
+            return res.status(400).json({
+                error: 'Ongeldige korting. Kies percentage of vast bedrag met een waarde boven 0.'
+            });
+        }
+
+        discounts[index] = discount;
+        writeDiscounts(discounts);
+        res.json(publicDiscountView(discount));
+    } catch (err) {
+        res.status(400).json({ error: err.message || 'Kon kortingscode niet bijwerken.' });
+    }
+});
+
+app.delete('/api/admin/discounts/:id', requireAdmin, (req, res) => {
+    const discounts = readDiscounts();
+    const index = discounts.findIndex((d) => d.id === req.params.id);
+    if (index === -1) {
+        return res.status(404).json({ error: 'Kortingscode niet gevonden.' });
+    }
+    discounts.splice(index, 1);
+    writeDiscounts(discounts);
+    res.json({ ok: true });
+});
+
 app.get('/api/health', (_req, res) => {
     let productCount = 0;
     let contactCount = 0;
@@ -1158,7 +1605,14 @@ app.listen(PORT, () => {
     console.log(`PokeVault draait op http://localhost:${PORT}`);
     console.log(`Admin: http://localhost:${PORT}/admin`);
     console.log(`Data: ${PERSIST_DIR}`);
-    console.log(`Wachtwoord: ${ADMIN_PASSWORD === 'pokevault' ? 'pokevault (wijzig via ADMIN_PASSWORD)' : '(uit ADMIN_PASSWORD)'}`);
+    if (ADMIN_PASSWORD === DEFAULT_ADMIN_PASSWORD) {
+        console.warn('Wachtwoord: standaard "pokevault" — wijzig dit via ADMIN_PASSWORD vóór productie');
+    } else {
+        console.log('Wachtwoord: ingesteld via ADMIN_PASSWORD');
+    }
+    console.log(
+        `Admin sessie: ${Math.round(SESSION_TTL_MS / 3600000)}u idle-timeout · login-lockout na ${LOGIN_MAX_ATTEMPTS} fouten`
+    );
     if (OPENROUTER_API_KEY) {
         console.log(`AI scan: aan (model ${OPENROUTER_MODEL})`);
     } else {

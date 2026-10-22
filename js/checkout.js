@@ -8,6 +8,8 @@
     };
 
     let shippingConfig = { ...DEFAULT_SHIPPING };
+    /** @type {{ code: string, discount: number } | null} */
+    let appliedDiscount = null;
 
     function tr(key, vars) {
         return typeof t === 'function' ? t(key, vars) : key;
@@ -68,6 +70,20 @@
         }
     }
 
+    function setDiscountMsg(message, type) {
+        const el = document.getElementById('discount-msg');
+        if (!el) return;
+        if (!message) {
+            el.hidden = true;
+            el.textContent = '';
+            el.className = 'checkout-discount-msg';
+            return;
+        }
+        el.hidden = false;
+        el.textContent = message;
+        el.className = 'checkout-discount-msg' + (type ? ` is-${type}` : '');
+    }
+
     function renderSummary() {
         const itemsEl = document.getElementById('checkout-items');
         const emptyEl = document.getElementById('checkout-empty');
@@ -80,6 +96,8 @@
         if (!items.length) {
             emptyEl.hidden = false;
             gridEl.hidden = true;
+            appliedDiscount = null;
+            setDiscountMsg('');
             return;
         }
 
@@ -102,9 +120,22 @@
         const subtotal = Cart.getTotalPrice();
         const country = selectedCountry();
         const shipping = shippingFor(subtotal, country);
-        const total = subtotal + shipping;
+        const discount = appliedDiscount ? Math.min(appliedDiscount.discount, subtotal) : 0;
+        const total = Math.max(0, subtotal - discount + shipping);
 
         document.getElementById('checkout-subtotal').textContent = formatEuro(subtotal);
+
+        const discountRow = document.getElementById('checkout-discount-row');
+        const discountEl = document.getElementById('checkout-discount');
+        if (discountRow && discountEl) {
+            if (discount > 0 && appliedDiscount) {
+                discountRow.hidden = false;
+                discountEl.textContent = '−' + formatEuro(discount);
+            } else {
+                discountRow.hidden = true;
+            }
+        }
+
         document.getElementById('checkout-shipping').textContent =
             shipping === 0 ? tr('checkout.free') : formatEuro(shipping);
         document.getElementById('checkout-total').textContent = formatEuro(total);
@@ -131,6 +162,56 @@
             };
         } catch (_) {
             /* keep defaults */
+        }
+    }
+
+    async function applyDiscount() {
+        const input = document.getElementById('discount-code');
+        const code = (input?.value || '').trim();
+        if (!code) {
+            appliedDiscount = null;
+            setDiscountMsg(tr('checkout.discountEmpty'), 'error');
+            renderSummary();
+            return;
+        }
+
+        Cart.load();
+        const subtotal = Cart.getTotalPrice();
+        if (!subtotal) {
+            setDiscountMsg(tr('checkout.emptyError'), 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/discount/validate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code, subtotal })
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                appliedDiscount = null;
+                setDiscountMsg(data.error || tr('checkout.discountInvalid'), 'error');
+                renderSummary();
+                return;
+            }
+            appliedDiscount = {
+                code: data.code,
+                discount: Number(data.discount) || 0
+            };
+            if (input) input.value = data.code;
+            setDiscountMsg(
+                tr('checkout.discountApplied', {
+                    code: data.code,
+                    amount: formatEuro(data.discount)
+                }),
+                'ok'
+            );
+            renderSummary();
+        } catch (_) {
+            appliedDiscount = null;
+            setDiscountMsg(tr('checkout.discountInvalid'), 'error');
+            renderSummary();
         }
     }
 
@@ -171,6 +252,10 @@
                 }
             }
         };
+
+        if (appliedDiscount?.code) {
+            payload.discountCode = appliedDiscount.code;
+        }
 
         submitBtn.disabled = true;
         submitBtn.textContent = paymentMethod === 'crypto'
@@ -227,11 +312,40 @@
         const country = document.getElementById('country');
         if (country) country.addEventListener('change', renderSummary);
 
+        const applyBtn = document.getElementById('discount-apply');
+        if (applyBtn) applyBtn.addEventListener('click', applyDiscount);
+
+        const discountInput = document.getElementById('discount-code');
+        if (discountInput) {
+            discountInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    applyDiscount();
+                }
+            });
+            discountInput.addEventListener('input', () => {
+                if (appliedDiscount && discountInput.value.trim().toUpperCase() !== appliedDiscount.code) {
+                    appliedDiscount = null;
+                    setDiscountMsg('');
+                    renderSummary();
+                }
+            });
+        }
+
         window.addEventListener('pokevault:langchange', () => {
             renderSummary();
             const submitBtn = document.getElementById('checkout-submit');
             if (submitBtn && !submitBtn.disabled) {
                 submitBtn.textContent = tr('checkout.submit');
+            }
+            if (appliedDiscount) {
+                setDiscountMsg(
+                    tr('checkout.discountApplied', {
+                        code: appliedDiscount.code,
+                        amount: formatEuro(appliedDiscount.discount)
+                    }),
+                    'ok'
+                );
             }
         });
     });

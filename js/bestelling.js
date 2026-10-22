@@ -71,6 +71,7 @@
             hero: tr('order.paidHero'),
             metaHtml: `
                 <p><strong>${tr('order.orderNumber')}</strong> ${escapeHtml(order.id)}</p>
+                ${order.discount > 0 ? `<p><strong>${tr('order.discount')}</strong> −${formatEuro(order.discount)}${order.discountCode ? ` (${escapeHtml(order.discountCode)})` : ''}</p>` : ''}
                 <p><strong>${tr('order.total')}</strong> ${formatEuro(order.total)}</p>
             `,
             actionsHtml: `
@@ -97,6 +98,7 @@
             hero: tr('order.cryptoHero'),
             metaHtml: `
                 <p><strong>${tr('order.orderNumber')}</strong> ${escapeHtml(order.id)}</p>
+                ${order.discount > 0 ? `<p><strong>${tr('order.discount')}</strong> −${formatEuro(order.discount)}${order.discountCode ? ` (${escapeHtml(order.discountCode)})` : ''}</p>` : ''}
                 <p><strong>${tr('order.total')}</strong> ${formatEuro(order.total)}</p>
                 <p><strong>${tr('order.paymentMethod')}</strong> Crypto (${escapeHtml(network)})</p>
                 ${walletBlock}
@@ -129,6 +131,7 @@
             hero: tr('order.pendingHero'),
             metaHtml: `
                 <p><strong>${tr('order.orderNumber')}</strong> ${escapeHtml(order.id)}</p>
+                ${order.discount > 0 ? `<p><strong>${tr('order.discount')}</strong> −${formatEuro(order.discount)}${order.discountCode ? ` (${escapeHtml(order.discountCode)})` : ''}</p>` : ''}
                 <p><strong>${tr('order.total')}</strong> ${formatEuro(order.total)}</p>
             `,
             actionsHtml: `

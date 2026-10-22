@@ -140,6 +140,14 @@
                         <option value="OTHER" data-i18n="country.OTHER">Ander land</option>
                     </select>
                 </div>
+                <div class="form-group checkout-discount-group">
+                    <label for="discount-code" data-i18n="checkout.discountCode">Kortingscode</label>
+                    <div class="checkout-discount-row">
+                        <input type="text" id="discount-code" name="discountCode" maxlength="40" placeholder="Bijv. WELKOM10" data-i18n-placeholder="checkout.discountPlaceholder" autocomplete="off" style="text-transform:uppercase">
+                        <button type="button" class="btn-secondary" id="discount-apply" data-i18n="checkout.discountApply">Toepassen</button>
+                    </div>
+                    <p class="checkout-discount-msg" id="discount-msg" role="status" hidden></p>
+                </div>
                 <fieldset class="payment-methods">
                     <legend data-i18n="checkout.paymentMethod">Betaalmethode</legend>
                     <label class="payment-option">
@@ -168,6 +176,10 @@
                     <div class="checkout-total-row">
                         <span data-i18n="checkout.subtotal">Subtotaal</span>
                         <strong id="checkout-subtotal">€0,00</strong>
+                    </div>
+                    <div class="checkout-total-row" id="checkout-discount-row" hidden>
+                        <span data-i18n="checkout.discount">Korting</span>
+                        <strong id="checkout-discount">−€0,00</strong>
                     </div>
                     <div class="checkout-total-row">
                         <span data-i18n="checkout.shipping">Verzending</span>
@@ -219,7 +231,7 @@
             </div>
         </div>
         <div class="footer-bottom">
-            <p data-i18n="footer.copyright">&copy; 2026 PokeVault. Spoelsterstraat 41, Haaksbergen. KvK: 08185063</p>
+            <p data-i18n="footer.copyright">&copy; 2026 PokeVault. Schoener 36-56, Lelystad. KvK: 42179219</p>
         </div>
     </footer>
 

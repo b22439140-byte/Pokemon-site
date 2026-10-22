@@ -1784,6 +1784,40 @@ body.cart-open {
     font-size: 1.05rem;
 }
 
+.checkout-discount-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: stretch;
+}
+
+.checkout-discount-row input {
+    flex: 1;
+    min-width: 0;
+}
+
+.checkout-discount-row .btn-secondary {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.checkout-discount-msg {
+    margin: 0.4rem 0 0;
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+.checkout-discount-msg.is-ok {
+    color: #1f6b3a;
+}
+
+.checkout-discount-msg.is-error {
+    color: #9b2c2c;
+}
+
+#checkout-discount-row strong {
+    color: #1f6b3a;
+}
+
 .checkout-note {
     margin: 1rem 0 0;
     font-size: 0.85rem;
