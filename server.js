@@ -115,6 +115,7 @@ const PERSIST_DIR = resolvePersistDir();
 const DATA_FILE = path.join(PERSIST_DIR, 'products.json');
 const CONTACTS_FILE = path.join(PERSIST_DIR, 'contacts.json');
 const ORDERS_FILE = path.join(PERSIST_DIR, 'orders.json');
+const REVIEWS_FILE = path.join(PERSIST_DIR, 'reviews.json');
 const SHIPPING_FILE = path.join(PERSIST_DIR, 'shipping.json');
 const DISCOUNTS_FILE = path.join(PERSIST_DIR, 'discounts.json');
 const UPLOADS_DIR = path.join(PERSIST_DIR, 'uploads');
@@ -325,6 +326,10 @@ if (!fs.existsSync(CONTACTS_FILE)) {
 
 if (!fs.existsSync(ORDERS_FILE)) {
     fs.writeFileSync(ORDERS_FILE, '[]');
+}
+
+if (!fs.existsSync(REVIEWS_FILE)) {
+    fs.writeFileSync(REVIEWS_FILE, '[]');
 }
 
 if (!fs.existsSync(DISCOUNTS_FILE)) {
@@ -552,6 +557,49 @@ function readContacts() {
 
 function writeContacts(contacts) {
     fs.writeFileSync(CONTACTS_FILE, JSON.stringify(contacts, null, 2));
+}
+
+function readReviews() {
+    try {
+        const reviews = JSON.parse(fs.readFileSync(REVIEWS_FILE, 'utf8'));
+        return Array.isArray(reviews) ? reviews : [];
+    } catch {
+        return [];
+    }
+}
+
+function writeReviews(reviews) {
+    fs.writeFileSync(REVIEWS_FILE, JSON.stringify(reviews, null, 2));
+}
+
+function publicReviewView(review) {
+    return {
+        id: review.id,
+        productId: review.productId,
+        rating: review.rating,
+        text: review.text,
+        displayName: review.displayName,
+        createdAt: review.createdAt
+    };
+}
+
+function defaultDisplayName(fullName) {
+    const name = String(fullName || '').trim();
+    if (!name) return 'Klant';
+    const first = name.split(/\s+/)[0];
+    return first.length > 40 ? first.slice(0, 40) : first;
+}
+
+function orderLineItemsUnique(order) {
+    const seen = new Set();
+    const items = [];
+    for (const raw of order?.items || []) {
+        const productId = String(raw?.productId || '').trim();
+        if (!productId || seen.has(productId)) continue;
+        seen.add(productId);
+        items.push(raw);
+    }
+    return items;
 }
 
 function readOrders() {
@@ -952,6 +1000,131 @@ app.get('/api/products/:id', (req, res) => {
     res.json(product);
 });
 
+app.get('/api/products/:id/reviews', (req, res) => {
+    const productId = String(req.params.id || '').trim();
+    const product = readProducts().find((p) => p.id === productId);
+    if (!product) return res.status(404).json({ error: 'Product niet gevonden.' });
+
+    const approved = readReviews()
+        .filter((r) => r.productId === productId && r.status === 'approved')
+        .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+
+    const count = approved.length;
+    const average = count
+        ? Math.round((approved.reduce((sum, r) => sum + Number(r.rating || 0), 0) / count) * 10) / 10
+        : null;
+
+    res.json({
+        productId,
+        count,
+        average,
+        reviews: approved.map(publicReviewView)
+    });
+});
+
+app.get('/api/orders/:id/reviewables', (req, res) => {
+    const orders = readOrders();
+    const order = orders.find((o) => o.id === req.params.id);
+    if (!order) return res.status(404).json({ error: 'Bestelling niet gevonden.' });
+    if (order.status !== 'paid') {
+        return res.status(403).json({ error: 'Reviews zijn alleen mogelijk na betaling.' });
+    }
+
+    const reviews = readReviews();
+    const reviewedIds = new Set(
+        reviews
+            .filter((r) => r.orderId === order.id && r.status !== 'rejected')
+            .map((r) => r.productId)
+    );
+    const products = readProducts();
+    const byId = new Map(products.map((p) => [p.id, p]));
+
+    const items = orderLineItemsUnique(order).map((item) => {
+        const live = byId.get(item.productId);
+        return {
+            productId: item.productId,
+            title: live?.title || item.title || item.productId,
+            image: live?.image || item.image || null,
+            alreadyReviewed: reviewedIds.has(item.productId)
+        };
+    });
+
+    res.json({
+        orderId: order.id,
+        customerName: defaultDisplayName(order.customer?.name),
+        items
+    });
+});
+
+app.post('/api/reviews', (req, res) => {
+    try {
+        const orderId = String(req.body?.orderId || '').trim();
+        const productId = String(req.body?.productId || '').trim();
+        const text = String(req.body?.text || '').trim();
+        const displayNameRaw = String(req.body?.displayName || '').trim();
+        const rating = Math.round(Number(req.body?.rating));
+
+        if (!orderId) return res.status(400).json({ error: 'Bestelnummer ontbreekt.' });
+        if (!productId) return res.status(400).json({ error: 'Product ontbreekt.' });
+        if (![1, 2, 3, 4, 5].includes(rating)) {
+            return res.status(400).json({ error: 'Kies een beoordeling van 1 tot 5 sterren.' });
+        }
+        if (!text || text.length < 10) {
+            return res.status(400).json({ error: 'Schrijf minimaal 10 tekens over je ervaring.' });
+        }
+        if (text.length > 1000) {
+            return res.status(400).json({ error: 'Review mag maximaal 1000 tekens zijn.' });
+        }
+        if (displayNameRaw.length > 60) {
+            return res.status(400).json({ error: 'Naam is te lang.' });
+        }
+
+        const orders = readOrders();
+        const order = orders.find((o) => o.id === orderId);
+        if (!order) return res.status(404).json({ error: 'Bestelling niet gevonden.' });
+        if (order.status !== 'paid') {
+            return res.status(403).json({ error: 'Je kunt pas een review plaatsen na betaling.' });
+        }
+
+        const line = orderLineItemsUnique(order).find((item) => item.productId === productId);
+        if (!line) {
+            return res.status(400).json({ error: 'Dit product zat niet in deze bestelling.' });
+        }
+
+        const reviews = readReviews();
+        const duplicate = reviews.find(
+            (r) => r.orderId === orderId && r.productId === productId && r.status !== 'rejected'
+        );
+        if (duplicate) {
+            return res.status(409).json({ error: 'Je hebt dit product uit deze bestelling al beoordeeld.' });
+        }
+
+        const products = readProducts();
+        const product = products.find((p) => p.id === productId) || null;
+        const displayName = displayNameRaw || defaultDisplayName(order.customer?.name);
+
+        const review = {
+            id: crypto.randomBytes(12).toString('hex'),
+            createdAt: new Date().toISOString(),
+            orderId,
+            productId,
+            productTitle: product?.title || line.title || productId,
+            productImage: product?.image || line.image || null,
+            rating,
+            text,
+            displayName,
+            customerEmail: order.customer?.email || null,
+            status: 'pending'
+        };
+
+        reviews.unshift(review);
+        writeReviews(reviews);
+        res.status(201).json({ ok: true, id: review.id, status: review.status });
+    } catch (err) {
+        res.status(400).json({ error: err.message || 'Kon review niet opslaan.' });
+    }
+});
+
 app.post('/api/products', requireAdmin, upload.array('images', 10), (req, res) => {
     try {
         const products = readProducts();
@@ -1270,9 +1443,11 @@ app.patch('/api/admin/orders/:id', requireAdmin, async (req, res) => {
     }
 
     if (status === 'paid' && previousStatus !== 'paid') {
-        const orderUrl = mailer.orderPageUrl(orders[index], resolvePublicBaseUrl(req));
+        const baseUrl = resolvePublicBaseUrl(req);
+        const orderUrl = mailer.orderPageUrl(orders[index], baseUrl);
+        const reviewUrl = mailer.reviewPageUrl(orders[index], baseUrl);
         try {
-            await mailer.notifyOrderPaid(orders[index], { orderUrl });
+            await mailer.notifyOrderPaid(orders[index], { orderUrl, reviewUrl });
         } catch (err) {
             console.error('Betalingsbevestiging e-mail mislukt:', err.message || err);
         }
@@ -1299,9 +1474,11 @@ app.get('/api/orders/:id', async (req, res) => {
                 writeOrders(orders);
 
                 if (!wasPaid && order.status === 'paid') {
-                    const orderUrl = mailer.orderPageUrl(order, resolvePublicBaseUrl(req));
+                    const baseUrl = resolvePublicBaseUrl(req);
+                    const orderUrl = mailer.orderPageUrl(order, baseUrl);
+                    const reviewUrl = mailer.reviewPageUrl(order, baseUrl);
                     try {
-                        await mailer.notifyOrderPaid(order, { orderUrl });
+                        await mailer.notifyOrderPaid(order, { orderUrl, reviewUrl });
                         orders[index] = order;
                         writeOrders(orders);
                     } catch (err) {
@@ -1348,6 +1525,38 @@ app.delete('/api/admin/contacts/:id', requireAdmin, (req, res) => {
     if (index === -1) return res.status(404).json({ error: 'Bericht niet gevonden.' });
     contacts.splice(index, 1);
     writeContacts(contacts);
+    res.json({ ok: true });
+});
+
+app.get('/api/admin/reviews', requireAdmin, (_req, res) => {
+    res.json(readReviews());
+});
+
+app.patch('/api/admin/reviews/:id', requireAdmin, (req, res) => {
+    const reviews = readReviews();
+    const index = reviews.findIndex((r) => r.id === req.params.id);
+    if (index === -1) return res.status(404).json({ error: 'Review niet gevonden.' });
+
+    const status = String(req.body?.status || '').trim().toLowerCase();
+    if (!['pending', 'approved', 'rejected'].includes(status)) {
+        return res.status(400).json({ error: 'Ongeldige status.' });
+    }
+
+    reviews[index] = {
+        ...reviews[index],
+        status,
+        moderatedAt: new Date().toISOString()
+    };
+    writeReviews(reviews);
+    res.json(reviews[index]);
+});
+
+app.delete('/api/admin/reviews/:id', requireAdmin, (req, res) => {
+    const reviews = readReviews();
+    const index = reviews.findIndex((r) => r.id === req.params.id);
+    if (index === -1) return res.status(404).json({ error: 'Review niet gevonden.' });
+    reviews.splice(index, 1);
+    writeReviews(reviews);
     res.json({ ok: true });
 });
 
@@ -1527,6 +1736,7 @@ app.get('/api/health', (_req, res) => {
     let productCount = 0;
     let contactCount = 0;
     let orderCount = 0;
+    let reviewCount = 0;
     try {
         productCount = readProducts().length;
     } catch (_) {
@@ -1542,6 +1752,11 @@ app.get('/api/health', (_req, res) => {
     } catch (_) {
         orderCount = -1;
     }
+    try {
+        reviewCount = readReviews().length;
+    } catch (_) {
+        reviewCount = -1;
+    }
     res.json({
         ok: true,
         admin: '/admin',
@@ -1549,6 +1764,7 @@ app.get('/api/health', (_req, res) => {
         productCount,
         contactCount,
         orderCount,
+        reviewCount,
         bunqConfigured: Boolean(BUNQ_API_KEY),
         bunqSandbox: BUNQ_SANDBOX,
         deployCheck: 'disk-persist-v1'

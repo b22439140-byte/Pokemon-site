@@ -2,15 +2,111 @@
     let currentProductId = null;
     let productsLoaded = false;
     let loadFailed = false;
+    /** @type {{ count: number, average: number|null, reviews: object[] }|null} */
+    let productReviews = null;
 
     function tr(key, vars) {
         return typeof t === 'function' ? t(key, vars) : key;
+    }
+
+    function escapeHtml(value) {
+        return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function starsFromRating(rating) {
+        const n = Math.max(0, Math.min(5, Math.round(Number(rating) || 0)));
+        return `${'★'.repeat(n)}${'☆'.repeat(5 - n)}`;
+    }
+
+    function formatReviewDate(iso) {
+        try {
+            const lang = document.documentElement.lang === 'en' ? 'en-GB' : 'nl-NL';
+            return new Intl.DateTimeFormat(lang, { month: 'long', year: 'numeric' }).format(new Date(iso));
+        } catch {
+            return '';
+        }
     }
 
     function badgeLabel(badge) {
         const keys = { sale: 'badge.sale', preorder: 'badge.preorder', en: 'badge.en' };
         if (!badge || !keys[badge]) return '';
         return tr(keys[badge]);
+    }
+
+    async function loadProductReviews(productId) {
+        productReviews = null;
+        if (!productId) return;
+        try {
+            const res = await fetch(`/api/products/${encodeURIComponent(productId)}/reviews`);
+            const data = await res.json().catch(() => null);
+            if (res.ok && data) {
+                productReviews = {
+                    count: Number(data.count) || 0,
+                    average: data.average == null ? null : Number(data.average),
+                    reviews: Array.isArray(data.reviews) ? data.reviews : []
+                };
+            }
+        } catch {
+            productReviews = null;
+        }
+    }
+
+    function ratingSummaryHtml() {
+        const count = productReviews?.count || 0;
+        const average = productReviews?.average;
+        if (!count || average == null) {
+            return `
+                <div class="product-rating product-rating-empty">
+                    <span class="product-rating-text">${tr('product.ratingEmpty')}</span>
+                </div>
+            `;
+        }
+        const avgLabel = Number(average).toFixed(1).replace('.', ',');
+        return `
+            <div class="product-rating">
+                <span class="product-stars" aria-label="${tr('product.ratingAria', { avg: avgLabel, n: count })}">${starsFromRating(average)}</span>
+                <span class="product-rating-text">${tr('product.ratingText', { avg: avgLabel, n: count })}</span>
+            </div>
+        `;
+    }
+
+    function reviewsSectionHtml() {
+        const reviews = productReviews?.reviews || [];
+        if (!reviews.length) {
+            return `
+                <section class="product-reviews" aria-label="${tr('product.reviewsAria')}">
+                    <h2>${tr('product.reviewsTitle')}</h2>
+                    <p class="product-reviews-empty">${tr('product.reviewsEmpty')}</p>
+                </section>
+            `;
+        }
+
+        const cards = reviews
+            .slice(0, 6)
+            .map((review) => {
+                const dateLabel = formatReviewDate(review.createdAt);
+                return `
+                    <blockquote class="review-card">
+                        <div class="review-stars">${starsFromRating(review.rating)}</div>
+                        <p>${escapeHtml(review.text)}</p>
+                        <footer>— ${escapeHtml(review.displayName || tr('product.reviewAnonymous'))}${
+                            dateLabel ? `<time datetime="${escapeHtml(String(review.createdAt || '').slice(0, 7))}">${escapeHtml(dateLabel)}</time>` : ''
+                        }</footer>
+                    </blockquote>
+                `;
+            })
+            .join('');
+
+        return `
+            <section class="product-reviews" aria-label="${tr('product.reviewsAria')}">
+                <h2>${tr('product.reviewsTitle')}</h2>
+                <div class="review-cards">${cards}</div>
+            </section>
+        `;
     }
 
     function renderProduct(product) {
@@ -47,7 +143,6 @@
         const isOutOfStock = product.inStock === false || stockLeft === 0;
         let stockClass = 'in-stock';
         let stockLabel = tr('product.inStock');
-
         if (product.badge === 'preorder') {
             stockClass = 'preorder';
             stockLabel = stockLeft > 0
@@ -120,10 +215,7 @@
                     <p class="product-brand">${product.brand}</p>
                     <h1 class="product-detail-title">${product.title}</h1>
 
-                    <div class="product-rating">
-                        <span class="product-stars" aria-label="${tr('product.ratingAria')}">★★★★★</span>
-                        <span class="product-rating-text">${tr('product.ratingText')}</span>
-                    </div>
+                    ${ratingSummaryHtml()}
 
                     <div class="product-stock ${stockClass}">${stockLabel}</div>
 
@@ -183,21 +275,7 @@
                 </div>
             </div>
 
-            <section class="product-reviews" aria-label="${tr('product.reviewsAria')}">
-                <h2>${tr('product.reviewsTitle')}</h2>
-                <div class="review-cards">
-                    <blockquote class="review-card">
-                        <div class="review-stars">★★★★★</div>
-                        <p>${tr('product.review1')}</p>
-                        <footer>${tr('product.review1Author')}<time datetime="2026-01">${tr('product.review1Date')}</time></footer>
-                    </blockquote>
-                    <blockquote class="review-card">
-                        <div class="review-stars">★★★★★</div>
-                        <p>${tr('product.review2')}</p>
-                        <footer>${tr('product.review2Author')}<time datetime="2026-02">${tr('product.review2Date')}</time></footer>
-                    </blockquote>
-                </div>
-            </section>
+            ${reviewsSectionHtml()}
         `;
 
         const mainImg = document.getElementById('product-main-image');
@@ -264,6 +342,9 @@
         try {
             await loadProducts();
             productsLoaded = true;
+            if (currentProductId) {
+                await loadProductReviews(currentProductId);
+            }
         } catch (err) {
             loadFailed = true;
             renderLoadError();

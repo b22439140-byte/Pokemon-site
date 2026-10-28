@@ -9,12 +9,15 @@ const productForm = document.getElementById('product-form');
 const formStatus = document.getElementById('form-status');
 const tbody = document.getElementById('products-tbody');
 const contactsTbody = document.getElementById('contacts-tbody');
+const reviewsTbody = document.getElementById('reviews-tbody');
 const ordersList = document.getElementById('orders-list');
 const ordersSortSelect = document.getElementById('orders-sort');
 const productTotal = document.getElementById('product-total');
 const contactsTotal = document.getElementById('contacts-total');
+const reviewsTotal = document.getElementById('reviews-total');
 const ordersTotal = document.getElementById('orders-total');
 const contactsBadge = document.getElementById('contacts-badge');
+const reviewsBadge = document.getElementById('reviews-badge');
 const ordersBadge = document.getElementById('orders-badge');
 const ordersCountAll = document.getElementById('orders-count-all');
 const ordersCountPending = document.getElementById('orders-count-pending');
@@ -26,11 +29,13 @@ const aiScanStatus = document.getElementById('ai-scan-status');
 const btnAiScan = document.getElementById('btn-ai-scan');
 const viewProducts = document.getElementById('view-products');
 const viewContacts = document.getElementById('view-contacts');
+const viewReviews = document.getElementById('view-reviews');
 const viewOrders = document.getElementById('view-orders');
 const viewShipping = document.getElementById('view-shipping');
 const viewDiscounts = document.getElementById('view-discounts');
 const tabProducts = document.getElementById('tab-products');
 const tabContacts = document.getElementById('tab-contacts');
+const tabReviews = document.getElementById('tab-reviews');
 const tabOrders = document.getElementById('tab-orders');
 const tabShipping = document.getElementById('tab-shipping');
 const tabDiscounts = document.getElementById('tab-discounts');
@@ -212,14 +217,26 @@ function switchView(view) {
     viewProducts.hidden = view !== 'products';
     viewOrders.hidden = view !== 'orders';
     viewContacts.hidden = view !== 'contacts';
+    if (viewReviews) viewReviews.hidden = view !== 'reviews';
     viewShipping.hidden = view !== 'shipping';
     if (viewDiscounts) viewDiscounts.hidden = view !== 'discounts';
-    [tabProducts, tabOrders, tabContacts, tabShipping, tabDiscounts].forEach((tab) => {
+    [tabProducts, tabOrders, tabContacts, tabReviews, tabShipping, tabDiscounts].forEach((tab) => {
         if (!tab) return;
         const active = tab.dataset.view === view;
         tab.classList.toggle('is-active', active);
         tab.setAttribute('aria-selected', String(active));
     });
+}
+
+function reviewStatusLabel(status) {
+    if (status === 'approved') return 'Goedgekeurd';
+    if (status === 'rejected') return 'Afgewezen';
+    return 'In afwachting';
+}
+
+function reviewStars(rating) {
+    const n = Math.max(0, Math.min(5, Math.round(Number(rating) || 0)));
+    return `${'★'.repeat(n)}${'☆'.repeat(5 - n)}`;
 }
 
 function formatDateTime(iso) {
@@ -600,6 +617,76 @@ async function loadContacts() {
     return contacts;
 }
 
+function renderReviews(reviews) {
+    const pendingCount = reviews.filter((r) => r.status === 'pending').length;
+    if (reviewsTotal) {
+        reviewsTotal.textContent = `${reviews.length} review${reviews.length !== 1 ? 's' : ''}` +
+            (pendingCount ? ` · ${pendingCount} te beoordelen` : '');
+    }
+
+    if (reviewsBadge) {
+        if (pendingCount > 0) {
+            reviewsBadge.hidden = false;
+            reviewsBadge.textContent = String(pendingCount);
+        } else {
+            reviewsBadge.hidden = true;
+        }
+    }
+
+    if (!reviewsTbody) return;
+
+    if (!reviews.length) {
+        reviewsTbody.innerHTML = '<tr><td colspan="5">Nog geen reviews.</td></tr>';
+        return;
+    }
+
+    reviewsTbody.innerHTML = reviews.map((r) => {
+        const status = r.status || 'pending';
+        const productChip = r.productTitle
+            ? `<div class="contact-product-chip">
+                   ${r.productImage ? `<img src="${escapeHtml(r.productImage)}" alt="">` : ''}
+                   <span>${escapeHtml(r.productTitle)}</span>
+               </div>`
+            : '';
+        const emailLine = r.customerEmail
+            ? `<div class="contact-meta"><a href="mailto:${escapeHtml(r.customerEmail)}">${escapeHtml(r.customerEmail)}</a></div>`
+            : '';
+
+        return `
+        <tr data-review-id="${r.id}">
+            <td data-label="Datum">${escapeHtml(formatDateTime(r.createdAt))}</td>
+            <td data-label="Product">
+                ${productChip}
+                <div class="contact-meta">Order: ${escapeHtml(r.orderId || '')}</div>
+            </td>
+            <td data-label="Review">
+                <div class="review-stars">${reviewStars(r.rating)}</div>
+                <strong>${escapeHtml(r.displayName || 'Klant')}</strong>
+                ${emailLine}
+                <div class="contact-message">${escapeHtml(r.text || '')}</div>
+            </td>
+            <td data-label="Status">
+                <span class="contact-status ${status === 'approved' ? 'is-done' : status === 'rejected' ? '' : 'is-new'}">${reviewStatusLabel(status)}</span>
+            </td>
+            <td class="admin-cell-actions" data-label="">
+                <div class="admin-row-actions">
+                    ${status !== 'approved' ? '<button type="button" class="btn-secondary btn-review-approve">Goedkeuren</button>' : ''}
+                    ${status !== 'rejected' ? '<button type="button" class="btn-secondary btn-review-reject">Afwijzen</button>' : ''}
+                    ${status !== 'pending' ? '<button type="button" class="btn-secondary btn-review-pending">Terug naar wachtend</button>' : ''}
+                    <button type="button" class="btn-danger btn-review-delete">Verwijderen</button>
+                </div>
+            </td>
+        </tr>
+        `;
+    }).join('');
+}
+
+async function loadReviews() {
+    const reviews = await api('/api/admin/reviews');
+    renderReviews(Array.isArray(reviews) ? reviews : []);
+    return reviews;
+}
+
 async function loadOrders() {
     const orders = await api('/api/admin/orders');
     allOrders = Array.isArray(orders) ? orders : [];
@@ -733,7 +820,14 @@ async function loadDiscounts() {
 }
 
 async function loadDashboard() {
-    await Promise.all([loadProducts(), loadOrders(), loadContacts(), loadShipping(), loadDiscounts()]);
+    await Promise.all([
+        loadProducts(),
+        loadOrders(),
+        loadContacts(),
+        loadReviews(),
+        loadShipping(),
+        loadDiscounts()
+    ]);
 }
 
 const passwordInput = document.getElementById('admin-password');
@@ -795,6 +889,12 @@ tabContacts.addEventListener('click', () => {
     switchView('contacts');
     loadContacts().catch(() => {});
 });
+if (tabReviews) {
+    tabReviews.addEventListener('click', () => {
+        switchView('reviews');
+        loadReviews().catch(() => {});
+    });
+}
 
 shippingForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -1146,6 +1246,44 @@ contactsTbody.addEventListener('click', async (e) => {
         }
     }
 });
+
+if (reviewsTbody) {
+    reviewsTbody.addEventListener('click', async (e) => {
+        const row = e.target.closest('tr[data-review-id]');
+        if (!row) return;
+        const id = row.dataset.reviewId;
+
+        const statusMap = {
+            'btn-review-approve': 'approved',
+            'btn-review-reject': 'rejected',
+            'btn-review-pending': 'pending'
+        };
+        const statusClass = Object.keys(statusMap).find((cls) => e.target.classList.contains(cls));
+        if (statusClass) {
+            try {
+                await api(`/api/admin/reviews/${encodeURIComponent(id)}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: statusMap[statusClass] })
+                });
+                await loadReviews();
+            } catch (err) {
+                alert(err.message);
+            }
+            return;
+        }
+
+        if (e.target.classList.contains('btn-review-delete')) {
+            if (!confirm('Deze review verwijderen?')) return;
+            try {
+                await api(`/api/admin/reviews/${encodeURIComponent(id)}`, { method: 'DELETE' });
+                await loadReviews();
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+    });
+}
 
 (async function init() {
     const token = getToken();

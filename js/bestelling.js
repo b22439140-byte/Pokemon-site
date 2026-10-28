@@ -75,7 +75,8 @@
                 <p><strong>${tr('order.total')}</strong> ${formatEuro(order.total)}</p>
             `,
             actionsHtml: `
-                <a class="btn-submit checkout-empty-link" href="/aanbod">${tr('order.continue')}</a>
+                <a class="btn-submit checkout-empty-link" href="/review?order=${encodeURIComponent(order.id)}">${tr('order.leaveReview')}</a>
+                <a class="order-secondary-link" href="/aanbod">${tr('order.continue')}</a>
                 <a class="order-secondary-link" href="/contact">${tr('order.questions')}</a>
             `
         });
